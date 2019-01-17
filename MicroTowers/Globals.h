@@ -2,6 +2,7 @@
 #define Globals_h
 
 #include <Arduino.h>
+#include <math.h>
 
 #include <Arduboy2.h>
 #include <ArduboyTones.h>
@@ -40,6 +41,10 @@ void getButtons() {
 // this is better not even
 #define MOVE_MAP_INTERVAL     3
 
+#define RASTER 6
+#define RASTER_X_OFFSET 1
+#define RASTER_Y_OFFSET 2
+
 bool isPlayMode = false;
 bool isGameOver = false;
 bool isStartAnimation = true;
@@ -47,13 +52,19 @@ bool isStartAnimation = true;
 uint32_t nextButtonInput = 0;
 uint32_t gameFrames = 0;
 
+int8_t xCursor = 0;
+int8_t yCursor = 0;
+uint8_t statCursor = 0;
+  
 enum {
-  WEAPON_STDGUN = 0,
-  WEAPON_ROCKET,
-  WEAPON_LASER,
-  WEAPON_MG,
-  WEAPON_FLAME,
-  WEAPON_SMALL_ROCKET
+  TOWER_SHOCK = 0,  
+  TOWER_FLAK,
+  TOWER_SILO,  
+  TOWER_HELP,
+  TOWER_MG,
+  TOWER_CANON,
+  TOWER_LASER,
+  TOWER_FLAME
 };
 
 #endif

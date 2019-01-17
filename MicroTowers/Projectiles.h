@@ -10,19 +10,20 @@ struct projectile {
   bool active;
 
   void draw() {
-    if (type == WEAPON_STDGUN) {
+    /*
+      if (type == WEAPON_STDGUN) {
       arduboy.drawPixel(x, y, BLACK);
       arduboy.drawPixel(x + 1, y, BLACK);
 
 
-    } else if (type == WEAPON_MG) {
+      } else if (type == WEAPON_MG) {
       arduboy.drawPixel(x, y, BLACK);
 
       if (player) {
         arduboy.drawPixel(x + 1, y, BLACK);
       }
 
-    } else if (type == WEAPON_FLAME) {
+      } else if (type == WEAPON_FLAME) {
 
       if (state < 4 * 4) {
         arduboy.fillRect(x, y, 4, 1, BLACK);
@@ -31,25 +32,27 @@ struct projectile {
         fillRectChess(x, y - 1, 4, 3, BLACK);
 
       }
-    }
+      }
+    */
   }
 
   void update() {
     int8_t vX, vY;
 
-    if (type == WEAPON_STDGUN) {
+    /*
+      if (type == WEAPON_STDGUN) {
       vX = 5;
       vY = 0;
 
-    } else if (type == WEAPON_ROCKET) {
+      } else if (type == WEAPON_ROCKET) {
       vX = 4;
       vY = 0;
 
-    } else if (type == WEAPON_LASER) {
+      } else if (type == WEAPON_LASER) {
       vX = 10;
       vY = 0;
 
-    } else if (type == WEAPON_MG) {
+      } else if (type == WEAPON_MG) {
       vX = 4;
       vY = 0;
 
@@ -63,14 +66,14 @@ struct projectile {
         }
       }
 
-    } else if (type == WEAPON_FLAME) {
+      } else if (type == WEAPON_FLAME) {
       vX = 4;
       vY = 0;
 
       state += 4;
 
 
-    } else if (type == WEAPON_SMALL_ROCKET) {
+      } else if (type == WEAPON_SMALL_ROCKET) {
       vX = 2;
       vY = 0;
 
@@ -79,11 +82,13 @@ struct projectile {
         if (gameFrames % abs(80 / state) == 0 )
           vY = state / abs(state);
       }
-    }
+      }
 
-    if (!player) {
+      if (!player) {
       vX = vX * -1;
-    }
+      }
+
+    */
 
     x += vX;
     y += vY;
@@ -100,14 +105,9 @@ struct projectile {
 
     // get the height and witdh depending on the type
     uint8_t h, w;
-    if (type == WEAPON_LASER) {
-      h = 1;
-      w = 20;
 
-    } else {
-      h = 1;
-      w = 3;
-    }
+    h = 1;
+    w = 3;
 
     // target to far right
     if (x + w < p_x + tolerance)

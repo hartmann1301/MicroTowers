@@ -1,4 +1,4 @@
-#ifndef Enemys_h
+
 #define Enemys_h
 
 #define MAX_ENEMYS      12
@@ -24,15 +24,15 @@ struct enemy {
 
   void update() {
 
- 
+
   }
 
   bool damage(uint8_t dmg) {
 
-#ifdef DEGUG_DMG_ENEMYS    
+#ifdef DEGUG_DMG_ENEMYS
     Serial.print("Enemy got DMG:");
     Serial.print(dmg, DEC);
-#endif 
+#endif
 
     if (dmg == 0)
       return false;
@@ -42,17 +42,17 @@ struct enemy {
     // reduce the damage because of map progress
     uint16_t reducePercent = 5;
 
-#ifdef DEGUG_DMG_ENEMYS   
+#ifdef DEGUG_DMG_ENEMYS
     Serial.print(" -%:");
     Serial.print(reducePercent, DEC);
-#endif 
+#endif
 
     tmpDmg -= dmg * reducePercent;
 
-#ifdef DEGUG_DMG_ENEMYS   
+#ifdef DEGUG_DMG_ENEMYS
     Serial.print(" is:");
-    Serial.println(float(tmpDmg)/100, 2);
-#endif 
+    Serial.println(float(tmpDmg) / 100, 2);
+#endif
 
     if (health > tmpDmg) {
       health -= tmpDmg;
@@ -107,6 +107,28 @@ struct enemy {
 
   }
 
+  bool isInRange(int16_t x, int16_t y, int16_t range) {
+
+    uint16_t xDist = abs(xTower - x - 2);
+    uint16_t yDist = abs(yTower - y - 2);
+
+    // check if not in rect around range circle
+    if (xDist > range || yDist > range)
+      return false;
+
+    // check if in rect in range circle
+    uint8_t rectInRange = (range * 10) / 7;
+    if (xDist < rectInRange && yDist < rectInRange)
+      return true;
+
+    // calculate actual distance with pythagoras
+    if (sqrtf(xDist * xDist + yDist * yDist) < range) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   bool touchesPosition(uint8_t p_x, uint8_t p_y, uint8_t p_w, uint8_t p_h) {
     // player to far left
     if (p_x + p_w < x + 3)
@@ -130,7 +152,7 @@ struct enemy {
 };
 
 struct enemyManager {
-  static const uint8_t maximum = 32;  
+  static const uint8_t maximum = 32;
   enemy list[maximum];
 
   void add(uint8_t x, uint8_t y, uint8_t type, uint8_t state) {
@@ -157,7 +179,7 @@ struct enemyManager {
 #ifdef DEBUG_ADD_FUNCTIONS
     if (!foundSlot)
       Serial.println("Warning, no slot for enemy!");
-#endif      
+#endif
   }
 
   uint8_t isEnemyAt(uint8_t x, uint8_t y, uint8_t w, uint8_t h) {

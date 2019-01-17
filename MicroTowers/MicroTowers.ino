@@ -23,6 +23,7 @@
 #include "Globals.h"
 #include "Sprites.h"
 #include "Draw.h"
+#include "math.h"
 
 #include "Animations.h"
 animationManager aM;
@@ -43,6 +44,7 @@ void setup() {
 #ifdef USE_SERIAL
   Serial.begin(57600);
   Serial.println(F("MicroTowers!"));
+
 #endif
 
 #ifdef ESP8266
@@ -57,25 +59,6 @@ void setup() {
 
   // some start tone
   //sound.tone(200, 200, 300, 200);
-
-
-  for (uint8_t i = 0; i < 12; i++) {
-    arduboy.fillScreen(WHITE);
-    drawTowerBitmap(5, 5, towerMG, NOROT, NOFLIP, i);
-    drawTowerBitmap(15, 5, towerMG, ROTCCW, NOFLIP, i);
-    drawTowerBitmap(25, 5, towerMG, ROT180, NOFLIP, i);
-    drawTowerBitmap(35, 5, towerMG, ROTCW, NOFLIP, i);
-
-    drawTowerBitmap(5, 15, towerMG, NOROT, NOFLIP, i);
-    drawTowerBitmap(15, 15, towerMG, NOROT, FLIPH, i);
-    drawTowerBitmap(25, 15, towerMG, NOROT, FLIPV, i);
-    drawTowerBitmap(35, 15, towerMG, NOROT, FLIPVH, i);
-    
-    arduboy.display();
-    delay(3000);
-  }
- 
-
 
   arduboy.fillScreen(WHITE);
   arduboy.display();
@@ -106,28 +89,59 @@ void loop() {
   arduboy.fillScreen(WHITE);
 
 
-  uint8_t i = 1;
-    drawTowerBitmap(5, 5, towerMG, NOROT, NOFLIP, i);
-    drawTowerBitmap(15, 5, towerMG, ROTCCW, NOFLIP, i);
-    drawTowerBitmap(25, 5, towerMG, ROT180, NOFLIP, i);
-    drawTowerBitmap(35, 5, towerMG, ROTCW, NOFLIP, i);
-
-    drawTowerBitmap(5, 15, towerMG, NOROT, NOFLIP, i);
-    drawTowerBitmap(15, 15, towerMG, NOROT, FLIPH, i);
-    drawTowerBitmap(25, 15, towerMG, NOROT, FLIPV, i);
-    drawTowerBitmap(35, 15, towerMG, NOROT, FLIPVH, i);
 
 
-  /*
-    checkButtons();
+  for (uint16_t i = 0; i < 360; i++) {
+    arduboy.fillScreen(WHITE);
 
-    if (modePlay) {
-    modePlay();
+    drawRaster();
 
-    } else {
-    modeMenu();
-    }
-  */
+    drawTower(0, 0, TOWER_MG, i, 0);
+    drawTower(0, 2, TOWER_MG, i, 1);
+    drawTower(0, 6, TOWER_MG, i, 2);
+    drawTower(0, 8, TOWER_MG, i, 3);
+
+    drawTower(3, 0, TOWER_CANON, i, 0);
+    drawTower(3, 2, TOWER_CANON, i, 1);
+    drawTower(3, 6, TOWER_CANON, i, 2);
+    drawTower(3, 8, TOWER_CANON, i, 3);
+
+    drawTower(6, 0, TOWER_LASER, i, 0);
+    drawTower(6, 2, TOWER_LASER, i, 1);
+    drawTower(6, 6, TOWER_LASER, i, 2);
+    drawTower(6, 8, TOWER_LASER, i, 3);
+
+    drawTower(9, 0, TOWER_FLAME, i, 0);
+    drawTower(9, 2, TOWER_FLAME, i, 1);
+    drawTower(9, 6, TOWER_FLAME, i, 2);
+    drawTower(9, 8, TOWER_FLAME, i, 3);
+
+    drawTower(12, 1, TOWER_SHOCK, i, 0);
+    drawTower(12, 3, TOWER_FLAK, i, 0);
+    drawTower(12, 5, TOWER_SILO, i, 0);
+    drawTower(12, 7, TOWER_HELP, i, 0);
+
+    drawTower(14, 1, TOWER_SHOCK, i, 1);
+    drawTower(14, 3, TOWER_FLAK, i, 1);
+    drawTower(14, 5, TOWER_SILO, i, 1);
+    drawTower(14, 7, TOWER_HELP, i, 1);
+
+    drawTower(16, 1, TOWER_SHOCK, i, 2);
+    drawTower(16, 3, TOWER_FLAK, i, 2);
+    drawTower(16, 5, TOWER_SILO, i, 2);
+    drawTower(16, 7, TOWER_HELP, i, 2);
+
+    drawTower(18, 1, TOWER_SHOCK, i, 3);
+    drawTower(18, 3, TOWER_FLAK, i, 3);
+    drawTower(18, 5, TOWER_SILO, i, 3);
+    drawTower(18, 7, TOWER_HELP, i, 3);
+
+    menuButtons();
+    drawCursor();
+
+    arduboy.display();
+    delay(20);
+  }
 
   arduboy.display();
 

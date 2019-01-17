@@ -3,34 +3,34 @@
 
 void menuButtons() {
 
-  /*
-    if (arduboy.pressed(UP_BUTTON))
-    changeMenuCursor(pT.menuCursor - 1);
+  if (millis() < nextButtonInput)
+    return;
 
-    if (arduboy.pressed(DOWN_BUTTON))
-    changeMenuCursor(pT.menuCursor + 1);
+  bool buttonPressed = false;
 
-    if (arduboy.pressed(LEFT_BUTTON)) {
-    if (millis() > nextButtonInput) {
-      arduboy.audio.toggle();
+  if (arduboy.pressed(UP_BUTTON) && yCursor > 0) {
+    buttonPressed = true;
+    yCursor--;
+  }
 
-      audioMessageTimeout = GAME_FRAMES * 2;
-      nextButtonInput = millis() + 400;
-    }
-    }
+  if (arduboy.pressed(DOWN_BUTTON) && yCursor < HEIGHT - 1) {
+    buttonPressed = true;
+    yCursor++;
+  }
 
-    if (arduboy.pressed(RIGHT_BUTTON)) {
-    if (millis() > nextButtonInput) {
-      if (pT.buyUpgrade())
-        nextButtonInput = millis() + 400;
-    }
-    }
+  if (arduboy.pressed(LEFT_BUTTON) && yCursor > 0) {
+    buttonPressed = true;
+    xCursor--;
+  }
 
-    if (arduboy.pressed(A_BUTTON))  {
-    if (pT.menuCursor < PLAYER_WEAPONS)
-      pT.weaponType = pT.menuCursor;
-    }
-  */
+  if (arduboy.pressed(RIGHT_BUTTON) && yCursor < WIDTH - 1) {
+    buttonPressed = true;
+    xCursor++;
+  }
+
+  if (buttonPressed)
+    nextButtonInput = millis() + 200;
+
 }
 
 void playButtons() {
