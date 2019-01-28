@@ -7,14 +7,116 @@
 #define ROT180 2
 #define ROTCW 3
 
-void drawOffsetBitmap(int16_t x, int16_t y, const uint8_t *image, int16_t iW,
-                      int16_t w, int16_t h, int16_t oX, uint8_t flip, uint16_t color);
+void drawBitmapSlow(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8_t h, uint16_t offset, uint8_t rotation) {
+
+  // return because there is nothing to draw
+  if (w <= 0 || h <= 0)
+    return;
+
+  // the offset is always multiplied by the width to get easier values
+  uint8_t wOffset = w * offset; 
+
+  for (uint8_t i = 0; i < w; i++) {
+
+    for (uint8_t j = 0; j < h; j++ ) {
+
+      uint8_t yOffset = j / 8;
+      uint8_t bitOffset = j % 8;
+
+      // continue to next for value if the bit is not set
+      if (!(pgm_read_byte(image + yOffset * w + i + wOffset) & (B00000001 << bitOffset)))
+        continue;
+
+      // do the rotation
+      int8_t k, l;
+      switch (rotation) {
+        case NOROT: //no rotation
+          k = i;
+          l = j;
+          break;
+        case ROTCCW: //90° counter-clockwise
+          k = j;
+          l = 7 - i - 1;
+          break;
+        case ROT180: //180°
+          k = 7 - i - 1;
+          l = 7 - j - 1;
+          break;
+        case ROTCW: //90° clockwise
+          k = 7 - j - 1;
+          l = i;
+          break;
+      }
+
+      // draw the turned pixels added to x and y coordinates
+      arduboy.drawPixel(x + k, y + l, BLACK);
+    }
+  }
+}
+
+void drawBitmapFast(int16_t x, int16_t y, const uint8_t *data, uint8_t w, uint8_t h, uint16_t offset, bool horizontalFlip) {
+
+  // no need to draw if out of screen
+  if ((y + 8 < 0 || y > HEIGHT) || (x + w  < 0 || x > WIDTH))
+    return;
+
+  // this is a fast modulo 8
+  int8_t yBitOffset = y & 7;
+
+  // calc how many full bytes are verticaly
+  uint8_t yBytes = (h - 1) / 8;
+
+  // the horizontal bytes line where to draw
+  int16_t yPos = (y / 8) * WIDTH;
+
+  // multiply with width before the for loop, it is only to get easier offsets values
+  uint8_t offsetWidth = offset * w;
+
+  for (uint16_t i = 0; i < w; i++) {
+
+    // flip the direction
+    uint16_t pos;
+    if (horizontalFlip) {
+      pos = w - i - 1;
+    } else {
+      pos = i;
+    }
+
+    int8_t yByteOffset = yBytes * w;
+
+    // get the byte to draw
+    byte currentByte = pgm_read_byte(data + offsetWidth + i + yByteOffset);
+
+    int16_t xPos = x + pos;
+    int16_t bytePos = xPos + yPos + yByteOffset;
+
+    if (bytePos >=  0  && bytePos < BUFFER_MAX &&
+        xPos    >=  0  && xPos    < WIDTH ) {
+
+      if (y >= 0) {
+        // shift pixels left/down and draw the top of the byte
+        arduboy.sBuffer[bytePos] &= ~(currentByte << yBitOffset);
+
+        // check height
+
+        // shift the pixels right/up and draw cut bitmap
+        if (yBitOffset != 0 && bytePos < (BUFFER_MAX - WIDTH)) {
+          arduboy.sBuffer[bytePos + WIDTH] &= ~(currentByte >> (8 - yBitOffset));
+        }
+
+      }  else {
+        // shift the pixels right/up and draw cut bitmap at the top of the screen
+        arduboy.sBuffer[bytePos] &= ~(currentByte >> (8 - yBitOffset));
+      }
+    }
+  }
+}
 
 /*
-uint8_t getRotation(int8_t x, int8_t y) {
+void drawTower(int16_t x, int16_t y, const uint8_t *image, int16_t offset, uint8_t rotation) {
 
-  int16_t deg = getDegree(x, y)
-  
+  // use fixed values for height, width and add a drawing offset of 2
+  drawBitmapSlow(x + 2, y + 2, image, 7, 7, offset, rotation);
 }
 */
 
@@ -54,181 +156,32 @@ int16_t getDegree(int8_t x, int8_t y) {
   }
 }
 
-void drawRaster() {
+int8_t getSektor(int8_t x, int8_t y) {
 
-  for (uint8_t xR = 0; xR < 126 / RASTER; xR++) {
-    uint8_t xPos = RASTER_X_OFFSET + xR * RASTER;
+  // multiply by 100 to aviod float and add offset 11.25°
+  uint16_t deg = getDegree(x, y) * 100 + 1125;
 
-    for (uint8_t yR = 0; yR < 60 / RASTER; yR++) {
-      uint8_t yPos = RASTER_Y_OFFSET + yR * RASTER;
+  // calc section of 22.5° circle
+  deg /= 2250;
 
-      arduboy.drawPixel(xPos + 1, yPos, BLACK);
-      arduboy.drawPixel(xPos + 5, yPos, BLACK);
-      arduboy.drawPixel(xPos, yPos + 1, BLACK);
-      arduboy.drawPixel(xPos, yPos + 5, BLACK);
-    }
-  }
+  //Serial.print(" x:" + String(x) + " y:" + String(y));
+  //Serial.println(" degree:" + String(getDegree(x, y)) + " ret:" + String(deg % 16));
+
+  // to return number from 0 to 15 use mod
+  return deg % 16;
 }
 
 void drawCursor() {
-  uint8_t xPos = xCursor * RASTER + RASTER_X_OFFSET;
-  uint8_t yPos = yCursor * RASTER + RASTER_Y_OFFSET;
+  uint8_t xPos = xCursor * RASTER + RASTER_OFFSET_X;
+  uint8_t yPos = yCursor * RASTER + RASTER_OFFSET_Y;
 
-  drawOffsetBitmap(xPos + 1, yPos + 1, cursorFrame, 44, 11, 11, statCursor, 0, INVERT);
+  //drawBitmapSlow(xPos + 1, yPos + 1, cursorFrame, 44, 11, 11, statCursor, 0, INVERT);
 
   // increment cursor for the next draw
   statCursor++;
   if (statCursor == 4)
     statCursor = 0;
 }
-
-void drawTower(int8_t xR, int8_t yR, uint8_t tower, int16_t degree, uint8_t lev) {
-
-  // get actual pixel positions from raster
-  int8_t x = xR * 6 + RASTER_X_OFFSET + 1;
-  int8_t y = yR * 6 + RASTER_Y_OFFSET + 1;
-
-  // draw socket depending on level
-  uint8_t levelCorner = 3 - lev + uint8_t(lev < 2);
-  arduboy.drawRoundRect(x, y, 11, 11, levelCorner, BLACK);
-
-  // clear raster mark, if in build menu
-  if (true)
-    arduboy.fillRect(x + 4, y + 4, 3, 3, WHITE);
-
-  const uint8_t *bitmap;
-
-  if (tower == TOWER_MG) {
-    bitmap = towerMG;
-
-  } else if (tower == TOWER_CANON) {
-    bitmap = towerCanon;
-
-  } else if (tower == TOWER_LASER) {
-    bitmap = towerLaser;
-
-  } else if (tower == TOWER_FLAME) {
-    bitmap = towerFlame;
-
-  } else {
-    // draw one of the fixed towers
-    drawOffsetBitmap(x + 2, y + 2, towerFix, 112, 7, 7, tower * 4 + lev, false, BLACK);
-
-    return;
-  }
-
-  // create rotation value from degrees
-  uint16_t rotation = (degree + 180) % 360; // because the sprites point to left
-
-  // make rotation bigger to avoid using floats
-  rotation *= 100;
-
-  // if float I would have added 11.25
-  rotation += 1125;
-
-  // if float I would have used 22.5, multiply by 100 is than neutral
-  rotation /= 225;
-
-  uint8_t offset = lev % 4 + (rotation % 4) * 4;
-
-  // divide again by 4 because sprite can only rotate every 90 degrees
-  rotation /= 4;
-  rotation %= 4;
-
-  int8_t i, j, //coordinates in the raw bitmap
-         k, l, //coordinates in the rotated/flipped bitmap
-         byteNum, bitNum, byteWidth = (112 + 7) >> 3;
-
-  //Serial.println(" degree:" + String(degree) + " rotation:" + String(rotation) + " offset:" + String(offset));
-
-  // multiply by 7 because the sprite is 7 pixels long
-  offset *= 7;
-
-  uint8_t oW = 7 + offset;
-  for (i = offset; i < oW; i++ ) {
-    byteNum = i / 8;
-    bitNum = i % 8;
-
-    uint8_t iTmp = i - offset;
-
-    for (j = 0; j < 7; j++) {
-      if (!(pgm_read_byte(bitmap + j * byteWidth + byteNum) & (B10000000 >> bitNum))) {
-        switch (rotation) {
-          case NOROT: //no rotation
-            k = iTmp;
-            l = j;
-            break;
-          case ROTCCW: //90° counter-clockwise
-            k = j;
-            l = 7 - iTmp - 1;
-            break;
-          case ROT180: //180°
-            k = 7 - iTmp - 1;
-            l = 7 - j - 1;
-            break;
-          case ROTCW: //90° clockwise
-            k = 7 - j - 1;
-            l = iTmp;
-            break;
-        }
-
-        k += x; //place the bitmap on the screen
-        l += y;
-
-        // it is plus 2 because the tower is centered in the socket
-        arduboy.drawPixel(k + 2, l + 2, BLACK);
-      }
-    }
-  }
-}
-
-
-
-void drawOffsetBitmap(int16_t x, int16_t y, const uint8_t *image, int16_t iW,
-                      int16_t w, int16_t h, int16_t oX, uint8_t flip, uint16_t color) {
-
-  // this would cause the for loop to count forever
-  if (w + oX < oX)
-    return;
-
-  // the offset is always multiplied by the lenght
-  oX *= w;
-
-  int16_t xi, yi, byteWidth = (iW + 7) / 8;
-  for (yi = 0; yi < h; yi++) {
-    for (xi = oX; xi < w + oX; xi++ ) {
-      if (pgm_read_byte(image + yi * byteWidth + xi / 8) & (128 >> (xi & 7)))
-        continue;
-
-      // flip == 0 no Flip
-      // flip == 1 horizontal Flip
-      // flip == 2 vertical Flip
-      // flip == 3 vertical and horizontal Flip
-
-      int16_t xPos, yPos;
-
-      // calc xPos
-      if (flip == 1 || flip == 3) {
-        xPos = x + w - xi + oX - 1;
-      } else {
-        xPos = x + xi - oX;
-      }
-
-      // calc yPos
-      if (flip == 2 || flip == 3) {
-        yPos = y + h - yi - 1;
-      } else {
-        yPos = y + yi;
-      }
-
-      // add invert function to drawPixel
-      if (color == INVERT)
-        color = !arduboy.getPixel(xPos, yPos);
-
-      arduboy.drawPixel(xPos, yPos, color);
-    }
-  }
-};
 
 /*
    this function draws only every second pixel
@@ -277,10 +230,12 @@ const unsigned char menuNumbers [] PROGMEM = {
 };
 
 void drawNumber6x4(int8_t x, int8_t y, uint8_t v) {
-  drawOffsetBitmap(x, y, menuNumbers, 40, 4, 6, v * 4, false, WHITE);
+  drawBitmapSlow(x, y, menuNumbers, /*40,*/ 4, 6, v, false, BLACK);
 }
 
 uint8_t drawNumbers(int8_t x, int8_t y, int16_t v) {
+  Serial.println("drawNumbers at x: " + String(x) + " y:" + String(y) + " value:" + String(v));
+
   uint8_t stellen;
   if (v < 10) {
     stellen = 1;

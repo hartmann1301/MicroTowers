@@ -24,12 +24,12 @@ struct animation {
         xPos = x + state * 2;
       }
 
-      drawOffsetBitmap(xPos, y - 2, animationImpact, 16, 4, 3, state * 4, (type == ANIMATION_IMPACT_L), BLACK);
+      //drawBitmapSlow(xPos, y - 2, animationImpact, 16, 4, 3, state * 4, (type == ANIMATION_IMPACT_L), BLACK);
 
     } else if (type == ANIMATION_BOOM) {
 
-      drawOffsetBitmap(x, y - 2, animationBoom, 32, 4, 10, state * 4, true, BLACK);
-      drawOffsetBitmap(x - 3, y - 2, animationBoom, 32, 4, 10, state * 4, false, BLACK);
+      //drawBitmapSlow(x, y - 2, animationBoom, 32, 4, 10, state * 4, true, BLACK);
+      //drawBitmapSlow(x - 3, y - 2, animationBoom, 32, 4, 10, state * 4, false, BLACK);
     }
   }
 

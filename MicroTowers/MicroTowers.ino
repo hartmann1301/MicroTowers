@@ -31,10 +31,14 @@ animationManager aM;
 #include "Projectiles.h"
 projectileManager pM;
 
+#include "Map.h"
+mapMangager mM;
+
 #include "Enemys.h"
 enemyManager eM;
 
 #include "Towers.h"
+towerManager tM;
 
 #include "Checks.h"
 #include "Buttons.h"
@@ -57,25 +61,93 @@ void setup() {
   arduboy.begin();
   arduboy.setFrameRate(GAME_FRAMES);
 
+  buyTower(3, 1, TOWER_LASER);
+  buyTower(11, 3, TOWER_CANON);
+  buyTower(14, 0, TOWER_MG);
+  buyTower(14, 7, TOWER_FLAME);
+
+  eM.add(0, 18, ENEMY_MG);
+  eM.add(40, 18, ENEMY_RUNNING);
+  eM.add(60, 10, ENEMY_RAT);
+
+  arduboy.fillScreen(WHITE);
+
+  /*
+    arduboy.drawSlowXYBitmap(30, 40, test7x7h, 7, 7, BLACK);
+    arduboy.drawBitmap(30, 30, test7x7v, 7, 7, BLACK);
+  */
+
+  /*
+    drawTower(10, 20, towerRotations, 0, 0);
+    drawTower(20, 20, towerRotations, 1, 0);
+    drawTower(30, 20, towerRotations, 0, 1);
+    drawTower(40, 20, towerRotations, 1, 1);
+  */
+
+  drawBitmapSlow(10, 10, towerRotations, 7, 8, 0, 0/*, BLACK*/);
+  drawBitmapSlow(20, 10, towerRotations, 7, 8, 1, 1/*, BLACK*/);
+  drawBitmapSlow(30, 10, towerRotations, 7, 8, 2, 2/*, BLACK*/);
+  drawBitmapSlow(40, 10, towerRotations, 7, 8, 3, 3/*, BLACK*/);
+        
+  drawBitmapFast(30, 30, towerRotations, 7, 8, 0, false);
+
+  /*
+    drawBitmapFast(10, 10, towerRotations, 7, 0, false);
+    drawBitmapFast(20, 10, towerRotations, 7, 1, false);
+    drawBitmapFast(30, 10, towerRotations, 7, 2, false);
+    drawBitmapFast(40, 10, towerRotations, 7, 16, false);
+    drawBitmapFast(50, 10, towerRotations, 7, 17, false);
+    drawBitmapFast(60, 10, towerRotations, 7, 22, false);
+
+
+    drawBitmapFast(10, 20, towerRotations, 7, 0, true);
+    drawBitmapFast(20, 20, towerRotations, 7, 1, true);
+    drawBitmapFast(30, 20, towerRotations, 7, 2, true);
+    drawBitmapFast(40, 20, towerRotations, 7, 16, true);
+    drawBitmapFast(50, 20, towerRotations, 7, 17, true);
+    drawBitmapFast(60, 20, towerRotations, 7, 23, true);
+  */
+
+  arduboy.display();
+  delay(900000);
+
+
+  arduboy.fillScreen(WHITE);
+
+  for (uint8_t i = 0; i < 2; i++) {
+
+    uint32_t s = micros();
+
+    if (i == 0) {
+      for (uint i = 0; i < 10; i++) {
+
+        //drawBitmapSlow(i * 10, 40, test7x7h, 7, 7, 7, 0, false, BLACK);
+
+        arduboy.drawBitmap(i * 10, 40, test7x7v, 7, 7, BLACK);
+      }
+
+    } else {
+      for (uint i = 0; i < 10; i++) {
+        //arduboy.drawSlowXYBitmap(i * 10, 40, test7x7h, 7, 7, BLACK);
+
+        drawBitmapFast(i * 10, 32, test7x7v, 7, 8, 0, false);
+      }
+    }
+
+    uint32_t diff = micros() - s;
+
+    drawNumbers(100, 30 + i * 10, diff);
+
+    Serial.println(String(micros()) + " " + String(i) + " took " + String(diff));
+  }
+
+
+
   // some start tone
   //sound.tone(200, 200, 300, 200);
 
-  arduboy.fillScreen(WHITE);
   arduboy.display();
-}
-
-void modePlay() {
-#ifdef DEBUG_FRAME_TIME
-  uint32_t start = millis();
-#endif
-
-
-
-#ifdef DEBUG_FRAME_TIME
-  // pirnt time for a frame to screen
-  arduboy.fillRect(0, 0, 26, 7, BLACK);
-  drawNumbers(0, 0, millis() - start);
-#endif
+  delay(99000);
 }
 
 void modeMenu() {
@@ -86,62 +158,31 @@ void loop() {
   if (!(arduboy.nextFrame()))
     return;
 
+#ifdef DEBUG_FRAME_TIME
+  uint32_t start = millis();
+#endif
+
   arduboy.fillScreen(WHITE);
 
+  if (mapChanged) {
+    mM.findPath();
+    mM.printMap();
 
-
-
-  for (uint16_t i = 0; i < 360; i++) {
-    arduboy.fillScreen(WHITE);
-
-    drawRaster();
-
-    drawTower(0, 0, TOWER_MG, i, 0);
-    drawTower(0, 2, TOWER_MG, i, 1);
-    drawTower(0, 6, TOWER_MG, i, 2);
-    drawTower(0, 8, TOWER_MG, i, 3);
-
-    drawTower(3, 0, TOWER_CANON, i, 0);
-    drawTower(3, 2, TOWER_CANON, i, 1);
-    drawTower(3, 6, TOWER_CANON, i, 2);
-    drawTower(3, 8, TOWER_CANON, i, 3);
-
-    drawTower(6, 0, TOWER_LASER, i, 0);
-    drawTower(6, 2, TOWER_LASER, i, 1);
-    drawTower(6, 6, TOWER_LASER, i, 2);
-    drawTower(6, 8, TOWER_LASER, i, 3);
-
-    drawTower(9, 0, TOWER_FLAME, i, 0);
-    drawTower(9, 2, TOWER_FLAME, i, 1);
-    drawTower(9, 6, TOWER_FLAME, i, 2);
-    drawTower(9, 8, TOWER_FLAME, i, 3);
-
-    drawTower(12, 1, TOWER_SHOCK, i, 0);
-    drawTower(12, 3, TOWER_FLAK, i, 0);
-    drawTower(12, 5, TOWER_SILO, i, 0);
-    drawTower(12, 7, TOWER_HELP, i, 0);
-
-    drawTower(14, 1, TOWER_SHOCK, i, 1);
-    drawTower(14, 3, TOWER_FLAK, i, 1);
-    drawTower(14, 5, TOWER_SILO, i, 1);
-    drawTower(14, 7, TOWER_HELP, i, 1);
-
-    drawTower(16, 1, TOWER_SHOCK, i, 2);
-    drawTower(16, 3, TOWER_FLAK, i, 2);
-    drawTower(16, 5, TOWER_SILO, i, 2);
-    drawTower(16, 7, TOWER_HELP, i, 2);
-
-    drawTower(18, 1, TOWER_SHOCK, i, 3);
-    drawTower(18, 3, TOWER_FLAK, i, 3);
-    drawTower(18, 5, TOWER_SILO, i, 3);
-    drawTower(18, 7, TOWER_HELP, i, 3);
-
-    menuButtons();
-    drawCursor();
-
-    arduboy.display();
-    delay(20);
+    mapChanged = false;
   }
+
+  mM.drawMap();
+
+  tM.update();
+  eM.update();
+
+  menuButtons();
+  drawCursor();
+
+#ifdef DEBUG_FRAME_TIME
+  // pirnt time for a frame to screen
+  drawNumbers(0, 0, millis() - start);
+#endif
 
   arduboy.display();
 

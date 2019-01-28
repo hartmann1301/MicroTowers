@@ -2,7 +2,6 @@
 #define Buttons_h
 
 void menuButtons() {
-
   if (millis() < nextButtonInput)
     return;
 
@@ -30,7 +29,6 @@ void menuButtons() {
 
   if (buttonPressed)
     nextButtonInput = millis() + 200;
-
 }
 
 void playButtons() {
