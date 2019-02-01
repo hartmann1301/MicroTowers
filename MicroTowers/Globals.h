@@ -13,7 +13,7 @@
 //#define DEBUG_ADD_FUNCTIONS
 //#define DEGUG_DMG_PLAYER
 //#define DEGUG_DMG_ENEMYS
-//#define DEBUG_FRAME_TIME
+#define DEBUG_FRAME_TIME
 
 #ifdef ESP8266
 #define PS2_DAT       D6 // brown/green
@@ -21,8 +21,6 @@
 #define PS2_SEL       D5 // yellow
 #define PS2_CLK       D8 // blue
 SSD1306Brzo oled(OLED_I2C_ADRESS, D2, D1);
-
-#define BUFFER_MAX (WIDTH*HEIGHT/8)
 
 #include <PS2X_lib.h>
 PS2X ps2x;
@@ -43,7 +41,11 @@ void getButtons() {
 // this is better not even
 #define MOVE_MAP_INTERVAL     3
 
+#define BUFFER_MAX (WIDTH*HEIGHT/8)
+
 #define RASTER 6
+#define HALF_RASTER (RASTER / 2)
+
 #define RASTER_OFFSET_X 1
 #define RASTER_OFFSET_Y 2
 
@@ -68,7 +70,8 @@ enum {
   GO_RIGHT = 0,
   GO_UP,
   GO_LEFT,  
-  GO_DOWN
+  GO_DOWN,
+  NO_DIRECTION
 };
 
 enum {

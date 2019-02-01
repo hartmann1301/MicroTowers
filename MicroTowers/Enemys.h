@@ -1,8 +1,6 @@
 #ifndef Enemys_h
 #define Enemys_h
 
-#define MAX_ENEMYS      12
-
 #define STATE_DEAD     250
 #define STATE_SPAWN    255
 
@@ -10,13 +8,21 @@
 #define LOOKS_LEFT_MASK  0b10111111
 
 enum {
-  ENEMY_MG,
-  ENEMY_ROCKET,
-  ENEMY_SHIELD,
-  ENEMY_RUNNING,
-  ENEMY_BACKPACK,
-  ENEMY_RAT,
-  ENEMY_WOLF
+  ANIMAL_RAT,
+  ANIMAL_HYENA,
+  ANIMAL_WOLF,
+  ANIMAL_PIG,
+  ANIMAL_GHOST,
+  HUMAN_RUNNING,
+  HUMAN_MG,
+  HUMAN_SHIELD,
+  HUMAN_ROCKET,
+  HUMAN_BACKPACK,
+  TWOPOD_LVL0,
+  TWOPOD_LVL1,
+  TWOPOD_LVL2,
+  TWOPOD_LVL3,
+  TWOPOD_LVL4
 };
 
 struct enemy {
@@ -88,6 +94,19 @@ struct enemy {
 
     }
 
+    // check if headquarter was reached
+    if (dir == NO_DIRECTION) {
+
+      if (type < 14) {
+        type++;
+      } else {
+        type = 0;
+      }
+
+      x = 0 + millis() % 4;
+      y = 18;
+    }
+
     // increment state from 0-5
     if (state == 5) {
       state = 0;
@@ -113,18 +132,6 @@ struct enemy {
 
       // set the is looking Left bit
       pathStorage |= LOOKS_LEFT_BIT;
-    }
-
-    if (x > 115) {
-
-      if (type < 6) {
-        type++;
-      } else {
-        type = 0;
-      }
-      
-      x = 0 + millis() % 4;
-      y = 10;
     }
   }
 
@@ -180,66 +187,28 @@ struct enemy {
     arduboy.fillRect((8 - hLen) + x, y, hLen, 1, BLACK);
   }
 
-  void drawFeet(uint8_t s) {
-    if (s < 2) {
-      // standing still
-      arduboy.drawPixel(x + 3, y + 7, BLACK);
-      arduboy.drawPixel(x + 4, y + 7, BLACK);
-
-    } else if (s == 2) {
-      // step forward and shoot
-      arduboy.drawPixel(x + 2, y + 7, BLACK);
-      arduboy.drawPixel(x + 4, y + 7, BLACK);
-
-    } else if (s == 3) {
-      // step back
-      arduboy.drawPixel(x + 3 , y + 7, BLACK);
-      arduboy.drawPixel(x + 5, y + 7, BLACK);
-    }
-  }
-
   void draw() {
-
     bool isLookingLeft = LOOKS_LEFT_BIT & pathStorage;
     uint8_t st = state % 3;
 
-    uint8_t imgWidth, spriteWidth;
-    const uint8_t *img;
-
-    if (type <= ENEMY_BACKPACK) {
-      imgWidth = 21,
-      spriteWidth = 7;
-
-      if (type == ENEMY_MG) {
-        img = enemyMG;
-        
-      } else if (type == ENEMY_ROCKET) {
-        img = enemyRocket;
-             
-      } else if (type == ENEMY_SHIELD) {
-        img = enemyShield;
-         
-      } else if (type == ENEMY_RUNNING) {
-        img = enemyRunning;
-        
-      } else {
-        img = enemyBackpack;
-      }
-      
+    uint8_t w;
+    if (type <= ANIMAL_GHOST) {
+      w = 9;
     } else {
-      imgWidth = 27,
-      spriteWidth = 9;
-      
-      if (type == ENEMY_RAT) {
-        img = enemyRat;
-        
-      } else if (type == ENEMY_WOLF) {
-        img = enemyWolf;
-
-      }
+      w = 6;
     }
-    
-    //drawBitmapSlow(x, y + 3, img, imgWidth, spriteWidth, 5, st, isLookingLeft, BLACK);
+
+    const uint8_t *img;
+    if (type <= ANIMAL_GHOST) {
+      img = enemyAnimals;
+    } else if (type <= HUMAN_BACKPACK) {
+      img = enemyHumans;
+    } else {
+      img = enemyTwoPods;
+    }
+
+    // draw the spirte fast
+    drawBitmapFast(x, y, img, w, (type % 5) * 3 + st, isLookingLeft);
   }
 
   bool isInRange(int16_t xTower, int16_t yTower, int16_t range) {
@@ -305,7 +274,7 @@ struct enemy {
 };
 
 struct enemyManager {
-  static const uint8_t maximum = 32;
+  static const uint8_t maximum = 16;
   enemy list[maximum];
 
   void add(uint8_t x, uint8_t y, uint8_t type) {

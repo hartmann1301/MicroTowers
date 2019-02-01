@@ -1,46 +1,40 @@
 #ifndef Map_h
 #define Map_h
 
-#define NODES 210
-#define COLUMNS  10
-#define ROWS  (NODES/COLUMNS)
+#define COLUMNS  9
+#define ROWS  20
+#define NODES (ROWS*COLUMNS)
 
-#define PATH_START  42
-#define PATH_END  62
+#define PATH_START  40
 
-#define HALF_RASTER (RASTER / 2)
 
+#define USE_MAP_BUILDING
+
+#ifdef ESP8266
 #define DEBUG_PATH_MAP
 //#define DEBUG_PATH_PRINT
+
+#endif
 
 #define MAP_STYLE_ONE
 
 enum {
-  IS_FREE = 0,
-  IS_TOWER,
-  IS_ROCK,
-  IS_BLOCKED
+  IS_FREE = 0,  // 00
+  IS_TOWER,     // 01
+  IS_ROCK,      // 10
+  IS_NOBUILD,   // 11
 };
 
-struct node {
-  // those are for the pathfinding
-  uint8_t cost = 0xff;
-  bool isClosed = false;
+// in this array the look and the behaviour of the current map is stored
+uint8_t mapComposition[NODES];
 
-  // those are to descripe the map
-  bool isOccupied = false;
-  bool isBlocked = false;
+// in this array the are the calculated costs from pathfinding
+uint8_t mapCosts[NODES];
 
-  /*            isOccupied  isBlocked
-    free place      false       false
-    tower           true        false
-    massive rock    true        true
-    no build        false       true
-  */
-};
+uint8_t headquarterPosition = 0;
 
 struct list {
-  static const uint8_t maximum = 16;
+  static const uint8_t maximum = 12;
   uint8_t len = 0;
   uint8_t data[maximum];
 
@@ -55,11 +49,6 @@ struct list {
     len++;
   }
 };
-
-list openList;
-list nextList;
-
-node nodeList[NODES];
 
 struct mapMangager {
 
@@ -83,28 +72,58 @@ struct mapMangager {
     }
   }
 
+#ifdef DEBUG_PATH_MAP
+  void printMap() {
+    Serial.println("Map:");
+
+    Serial.print("    ");
+    for (uint8_t j = 0; j < ROWS; j++) {
+      Serial.printf(" %02d ", j);
+    }
+
+    Serial.println();
+    Serial.println();
+
+    for (uint8_t i = 0; i < COLUMNS; i++) {
+      Serial.printf("%02d |", i);
+
+      for (uint8_t j = 0; j < ROWS; j++) {
+        uint8_t index = getIndex(j, i);
+
+        switch (mapComposition[index]) {
+
+          case IS_FREE:
+            if (mapCosts[index] != 0xff) {
+              Serial.printf(" %02d ", mapCosts[index]);
+            } else {
+              Serial.print("    ");
+            }
+            break;
+
+          case IS_TOWER:
+            Serial.print("[To]");
+            break;
+
+          case IS_ROCK:
+            Serial.print("[__]");
+            break;
+
+          case IS_NOBUILD:
+            Serial.printf(".%02d.", mapCosts[index]);
+            break;
+        }
+      }
+      Serial.println("|");
+    }
+
+    Serial.println("done");
+  }
+#endif
+
   void setNode(uint8_t xR, uint8_t yR, uint8_t type) {
     //Serial.println("setNode at xR: " + String(xR) + " yR: " + String(yR) + " type: " + String(type));
 
-    uint8_t index = getIndex(xR, yR);
-
-    if (type == IS_FREE) {
-      nodeList[index].isOccupied = false;
-      nodeList[index].isBlocked = false;
-
-    } else if (type == IS_TOWER) {
-      nodeList[index].isOccupied = true;
-      nodeList[index].isBlocked = false;
-
-    } else if (type == IS_ROCK) {
-      nodeList[index].isOccupied = true;
-      nodeList[index].isBlocked = true;
-
-    } else {
-      nodeList[index].isOccupied = false;
-      nodeList[index].isBlocked = true;
-
-    }
+    mapComposition[getIndex(xR, yR)] = type;
   }
 
   void placeTower(uint8_t xR, uint8_t yR) {
@@ -154,8 +173,7 @@ struct mapMangager {
       }
     }
 
-    Serial.println("error");
-    return 0xff;
+    return NO_DIRECTION;
   }
 
   uint8_t getCost(uint8_t xR, uint8_t yR) {
@@ -167,7 +185,7 @@ struct mapMangager {
     if (yR < 0 || yR >= COLUMNS)
       return 0xff;
 
-    return nodeList[getIndex(xR, yR)].cost;
+    return mapCosts[getIndex(xR, yR)];
   }
 
   void drawMap() {
@@ -179,144 +197,197 @@ struct mapMangager {
 
         uint8_t index = getIndex(xR, yR);
 
-        if (nodeList[index].isOccupied) {
+        switch (mapComposition[index]) {
 
-          // draw a massive thing
-          if (nodeList[index].isBlocked) {
-            arduboy.drawRect(xPos + 1, yPos + 1, 5, 5, BLACK);
-          }
-
-        } else {
-
-          // draw the raster for better orientation
-          if (drawRaster) {
+          case IS_FREE:
+            if (drawRaster) {
 #ifdef MAP_STYLE_ONE
-            arduboy.drawPixel(xPos + 1, yPos, BLACK);
-            arduboy.drawPixel(xPos + 5, yPos, BLACK);
-            arduboy.drawPixel(xPos, yPos + 1, BLACK);
-            arduboy.drawPixel(xPos, yPos + 5, BLACK);
+              arduboy.drawPixel(xPos + 1, yPos, BLACK);
+              arduboy.drawPixel(xPos + 5, yPos, BLACK);
+              arduboy.drawPixel(xPos, yPos + 1, BLACK);
+              arduboy.drawPixel(xPos, yPos + 5, BLACK);
 #else
-            arduboy.drawPixel(xPos, yPos, BLACK);
-            arduboy.drawPixel(xPos, yPos + 5, BLACK);
-            arduboy.drawPixel(xPos + 5, yPos, BLACK);
-            arduboy.drawPixel(xPos + 5, yPos + 5, BLACK);
+              arduboy.drawPixel(xPos, yPos, BLACK);
+              arduboy.drawPixel(xPos, yPos + 5, BLACK);
+              arduboy.drawPixel(xPos + 5, yPos, BLACK);
+              arduboy.drawPixel(xPos + 5, yPos + 5, BLACK);
 #endif
-          }
+            }
+            break;
 
-          // draw a few pixels to show no building areo
-          if (nodeList[index].isBlocked) {
-            arduboy.drawPixel(xPos + 2, yPos + 4, BLACK);
-            arduboy.drawPixel(xPos + 3, yPos + 3, BLACK);
-            arduboy.drawPixel(xPos + 4, yPos + 4, BLACK);
-          }
+          case IS_TOWER:
+
+            if (index == headquarterPosition) {
+              drawBitmapFast(xPos + 1, yPos - 1, symbolSet, 7, 0, false);
+            }
+            
+            break;
+
+          case IS_ROCK:
+            drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR) % 4, yR % 2);
+            break;
+
+          case IS_NOBUILD:
+
+            drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR + xR % 3) % 6 + 4, yR % 2);
+            break;
         }
-
       }
     }
   }
 
-#ifdef DEBUG_PATH_MAP
-  void printMap() {
-
-    Serial.println("Map:");
-
-    Serial.print("    ");
-    for (uint8_t j = 0; j < ROWS; j++) {
-      Serial.printf(" %02d ", j);
-    }
-
-    Serial.println();
-    Serial.println();
-
-    for (uint8_t i = 0; i < COLUMNS; i++) {
-      Serial.printf("%02d |", i);
-
-      for (uint8_t j = 0; j < ROWS; j++) {
-        uint8_t index = j + i * ROWS;
-
-        if (!nodeList[index].isOccupied && !nodeList[index].isBlocked) {
-          if (nodeList[index].cost != 0xff) {
-            Serial.printf(" %02d ", nodeList[index].cost);
-          } else {
-            Serial.print("    ");
-          }
-        } else if (!nodeList[index].isOccupied && !nodeList[index].isBlocked) {
-          Serial.print("[To]");
-        } else if (nodeList[index].cost == 0xff) {
-          Serial.print("[__]");
-        } else {
-          Serial.printf(".%02d.", nodeList[index].cost);
-        }
-
-      }
-      Serial.println("|");
-    }
-
-    Serial.println("done");
-  }
-#endif
-
-  void checkNeighbour(int16_t i) {
+  void checkNeighbour(list &lNext, bool *lClosed, int16_t i) {
     // only valid nodes
     if (i < 0 || i >= NODES)
       return;
 
-    if (nodeList[i].isClosed)
+    if (lClosed[i] == true)
       return;
 
-    if (nodeList[i].isOccupied)
+    if (mapComposition[i] == IS_ROCK || mapComposition[i] == IS_TOWER)
       return;
 
 #ifdef DEBUG_PATH_PRINT
     Serial.println(" found neighbour:" + String(i));
 #endif
-    nextList.add(i);
+    lNext.add(i);
   }
 
-  void setMapData() {
+  void createMap() {
 
-    setNode(4, 0, IS_ROCK);
+      setNode(4, 0, IS_ROCK);
 
-    setNode(10, 1, IS_ROCK);
-    setNode(10, 2, IS_ROCK);
-    setNode(10, 3, IS_ROCK);
-    setNode(10, 4, IS_ROCK);
-    setNode(10, 5, IS_ROCK);
-    setNode(10, 6, IS_ROCK);
-    setNode(10, 7, IS_ROCK);
-    setNode(10, 8, IS_ROCK);
-    setNode(10, 9, IS_ROCK);
+      setNode(10, 1, IS_ROCK);
+      setNode(10, 2, IS_ROCK);
+      setNode(10, 3, IS_ROCK);
+      setNode(10, 4, IS_ROCK);
+      setNode(10, 5, IS_ROCK);
+      setNode(10, 6, IS_ROCK);
+      setNode(10, 7, IS_ROCK);
+      setNode(10, 8, IS_ROCK);
 
-    setNode(7, 6, IS_BLOCKED);
-    setNode(7, 7, IS_BLOCKED);
-    setNode(8, 7, IS_BLOCKED);
+      setNode(7, 6, IS_NOBUILD);
+      setNode(7, 7, IS_NOBUILD);
+      setNode(8, 7, IS_NOBUILD);
+      setNode(6, 6, IS_NOBUILD);
+      setNode(6, 7, IS_NOBUILD);
+      setNode(6, 8, IS_NOBUILD);
+      setNode(5, 6, IS_NOBUILD);
+      setNode(5, 7, IS_NOBUILD);
+      setNode(5, 8, IS_NOBUILD);
+      setNode(4, 6, IS_NOBUILD);
+      setNode(4, 7, IS_NOBUILD);
+      setNode(4, 8, IS_NOBUILD);
 
-    setNode(15, 2, IS_ROCK);
-    setNode(15, 3, IS_ROCK);
-    setNode(15, 4, IS_ROCK);
-    setNode(15, 5, IS_ROCK);
-    setNode(15, 6, IS_ROCK);
+      setNode(15, 2, IS_ROCK);
+      setNode(15, 3, IS_ROCK);
+      setNode(15, 4, IS_ROCK);
+      setNode(15, 5, IS_ROCK);
 
-    setNode(12, 8, IS_ROCK);
-    setNode(13, 8, IS_ROCK);
+      setNode(12, 7, IS_ROCK);
+      setNode(13, 7, IS_ROCK);
+
+      setNode(19, 1, IS_TOWER);
   }
+
+  void loadMap(uint16_t mapNumber) {
+
+    for (uint8_t n = 0; n < NODES; n++) {
+
+      // because there are 4 byte in every pgm space map byte
+      uint8_t index = n / 4;
+
+      // data for 4 bytes
+      uint8_t rawData = pgm_read_byte(allMaps + index + mapNumber * 45);
+
+      // must be shiftes 2, 4 or 6 times
+      uint8_t shifts = (3 - (n % 4)) * 2;
+
+      // shift data to get the correct two bits
+      uint8_t data = (rawData & (0b00000011 << shifts)) >> shifts;
+      
+      // save position of headquarter
+      if (data == IS_TOWER) {
+        Serial.println("headquarter is:" + String(n));
+        headquarterPosition = n;
+      }
+      // write to the current map array
+      mapComposition[n] = data;
+    }
+  }
+
+#ifdef USE_MAP_BUILDING
+  void generateMapArray() {
+
+    // i use only 2 bits per map node
+    const uint8_t COMPRESSED_NODES = NODES / 4;
+
+    // create temporary array
+    uint8_t mapData[COMPRESSED_NODES];
+
+    for (uint8_t n = 0; n < NODES; n++) {
+
+      // holds the index
+      uint8_t index = n / 4;
+
+      // shift data 2 bits left if it is no new byte
+      if ((n % 4) != 0) {
+        // get the current data of this byte
+        uint8_t tmpData = mapData[index];
+
+        // write it left shifted back
+        mapData[index] = tmpData << 2;
+
+      } else {
+
+        // clear the byte before writing stuff
+        mapData[index] = 0;
+      }
+
+      // add current note to byte
+      mapData[index] |= mapComposition[n];
+    }
+
+    Serial.println("Generated following map bytes:");
+
+    for (uint8_t n = 0; n < COMPRESSED_NODES; n++) {
+
+      Serial.print("0x");
+
+      if (mapData[n] <= 0xf)
+        Serial.print("0");
+
+      Serial.print(mapData[n], HEX);
+      Serial.print(", ");
+
+      if ((n + 1) % 16 == 0)
+        Serial.println();
+    }
+
+    Serial.println();
+  }
+#endif
 
   bool findPath() {
 
-    setMapData();
+    // they do not need to be global!
+    list openList;
+    list nextList;
+
+    bool closedList[NODES];
 
 #ifdef DEBUG_PATH_MAP
     uint32_t startMap = micros();
 #endif
 
-    // init the cost with number values
+    // init the mapCosts with number values
     for (uint8_t i = 0; i < NODES; i++) {
-      nodeList[i].cost = i;
-      nodeList[i].isClosed = false;
+      mapCosts[i] = i;
+      closedList[i] = false;
     }
 
     // set end position
-    openList.add(PATH_END);
+    openList.add(headquarterPosition);
 
     uint8_t currentCost = 0;
 
@@ -331,37 +402,39 @@ struct mapMangager {
         Serial.println("node:" + String(n) + " set Cost to:" + String(currentCost));
 #endif
         // set costs and mark this node as closed
-        nodeList[n].cost = currentCost;
-        nodeList[n].isClosed = true;
-
-        if (n == PATH_START) {
-
-          // delete the unused node costs/nums
-          for (uint8_t i = 0; i < NODES; i++) {
-            if (nodeList[i].isClosed == false)
-              nodeList[i].cost = 0xff;
-          }
-
-#ifdef DEBUG_PATH_MAP
-          Serial.println("Path took: " + String(micros() - startMap));
-#endif
-          return true;
-        }
+        mapCosts[n] = currentCost;
+        closedList[n] = true;
 
         // check top and bottom neighbours
-        checkNeighbour(n - ROWS);
-        checkNeighbour(n + ROWS);
+        checkNeighbour(nextList, closedList, n - ROWS);
+        checkNeighbour(nextList, closedList, n + ROWS);
 
         // check top and bottom neighbours
         if (n % ROWS != 0)
-          checkNeighbour(n - 1);
+          checkNeighbour(nextList, closedList, n - 1);
 
         if (n % ROWS != ROWS - 1)
-          checkNeighbour(n + 1);
+          checkNeighbour(nextList, closedList, n + 1);
       }
 
       // add new neightbours to openList
       memcpy(&openList, &nextList, sizeof(list));
+
+      if (/*n == PATH_START*/  openList.len == 0) {
+
+        // delete the unused node costs/nums
+        for (uint8_t i = 0; i < NODES; i++) {
+          if (closedList[i] == false)
+            mapCosts[i] = 0xff;
+        }
+
+#ifdef DEBUG_PATH_MAP
+        Serial.println("Path took: " + String(micros() - startMap));
+
+        printMap();
+#endif
+        return true;
+      }
 
       // clear the nextList
       nextList.len = 0;

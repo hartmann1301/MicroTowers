@@ -70,6 +70,57 @@ struct tower {
     }
   }
 
+  int16_t getDegree(int8_t x, int8_t y) {
+    if (x == 0 && y == 0)
+      return -1;
+
+    if (x == 0 && y > 0)
+      return 90;
+
+    if (x == 0 && y < 0)
+      return 270;
+
+    if (y == 0 && x > 0)
+      return 0;
+
+    if (y == 0 && x < 0)
+      return 180;
+
+    //Serial.print("getDegree from x:" + String(x) + " y:" + String(y));
+    //uint32_t start = micros();
+
+    static const float radToDegree = 180.0 / PI;
+    int16_t deg = atanf(float(y) / x) * radToDegree;
+
+    //uint32_t dur = micros() - start;
+    //Serial.println(" atan(:" + String(deg) + ") took:" + String(dur));
+
+    if (x < 0) {
+      return 180 + deg;
+
+    } else {
+      if (deg < 0)
+        deg += 360;
+
+      return deg;
+    }
+  }
+
+  int8_t getSektor(int8_t x, int8_t y) {
+
+    // multiply by 100 to aviod float and add offset 11.25°
+    uint16_t deg = getDegree(x, y) * 100 + 1125;
+
+    // calc section of 22.5° circle
+    deg /= 2250;
+
+    //Serial.print(" x:" + String(x) + " y:" + String(y));
+    //Serial.println(" degree:" + String(getDegree(x, y)) + " ret:" + String(deg % 16));
+
+    // to return number from 0 to 15 use mod
+    return deg % 16;
+  }
+
   void update() {
     // look for a target
     int8_t target = getTarget();
@@ -128,10 +179,10 @@ struct tower {
       // todo draw those towers fast
 
       // set offset for correct level and fine rotation
-      uint16_t offset = lev % 4 + (sektor % 4) * 4;
+      uint8_t offset = lev % 4 + (sektor % 4) * 4;
 
-      // set tower offset 
-      offset += type * 7 * 16;
+      // set tower offset
+      offset += type * 16;
 
       // divide again by 4 because sprite can only rotate every 90 degrees
       uint8_t rotation = sektor / 4;
@@ -139,22 +190,22 @@ struct tower {
       // rotate 180° because the sprite looks to the left side
       rotation = (rotation + 2) % 4;
 
-      // actual drawing slowly
-      drawBitmapSlow(x + 2, y + 2, allTowers, 7, 8, offset, rotation);
+      //  Serial.println("drawSlow:" + String(type) + " offset " + String(offset) + " rotation " + String(rotation));
+      drawBitmapSlow(x + 2, y + 2, allTowers, 7, 7, offset, rotation);
 
     } else {
 
       // offset is a huge value, because the four other towers are on top
-      uint16_t offset = lev % 4 + (type - TOWER_SHOCK) * 4 + 7 * 16 * 4
-      
+      uint8_t offset = lev % 4 + (type - TOWER_SHOCK) * 4 + 16 * 4;
+
       // can be drawn fast
-      drawBitmapFast(x + 2, y + 2, allTowers, 7, 8, offset, false);   
+      drawBitmapFast(x + 2, y + 2, allTowers, 7, offset, false);
     }
   }
 };
 
 struct towerManager {
-  static const uint8_t maximum = 20;
+  static const uint8_t maximum = 10;
   tower list[maximum];
 
   void add(uint8_t xR, uint8_t yR, uint8_t type) {
