@@ -26,8 +26,8 @@ enum {
 };
 
 struct enemy {
-  uint8_t x;
-  uint8_t y;
+  int8_t x;
+  int8_t y;
   uint8_t type;
 
   uint8_t state = 0;
@@ -103,8 +103,8 @@ struct enemy {
         type = 0;
       }
 
-      x = 0 + millis() % 4;
-      y = 18;
+      x = millis() % 4 - 8;
+      y = 22;
     }
 
     // increment state from 0-5

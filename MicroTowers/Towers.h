@@ -161,8 +161,7 @@ struct tower {
     uint8_t y = getY();
 
     // draw socket depending on level
-    uint8_t socketCorner = 3 - lev + uint8_t(lev < 2);
-    arduboy.drawRoundRect(x, y, 11, 11, socketCorner, BLACK);
+    drawTowerSocket(x, y, lev);
 
     // clear raster mark, if in build menu
     if (false)
@@ -174,7 +173,7 @@ struct tower {
     if (drawRange)
       arduboy.drawCircle(x + 5, y + 5, range, BLACK);
 
-    if (type <= TOWER_FLAME) {
+    if (type <= TOWER_FROST) {
 
       // todo draw those towers fast
 
@@ -195,8 +194,8 @@ struct tower {
 
     } else {
 
-      // offset is a huge value, because the four other towers are on top
-      uint8_t offset = lev % 4 + (type - TOWER_SHOCK) * 4 + 16 * 4;
+      // offset is a huge value, because the five other towers are on top
+      uint8_t offset = lev % 4 + (type - TOWER_SHOCK) * 4 + 16 * 6;
 
       // can be drawn fast
       drawBitmapFast(x + 2, y + 2, allTowers, 7, offset, false);

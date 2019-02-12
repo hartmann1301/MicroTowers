@@ -1,37 +1,19 @@
 #ifndef Map_h
 #define Map_h
 
-#define COLUMNS  9
-#define ROWS  20
-#define NODES (ROWS*COLUMNS)
-
-#define PATH_START  40
-
-
 #define USE_MAP_BUILDING
 
 #ifdef ESP8266
 #define DEBUG_PATH_MAP
 //#define DEBUG_PATH_PRINT
-
 #endif
 
-#define MAP_STYLE_ONE
-
 enum {
-  IS_FREE = 0,  // 00
-  IS_TOWER,     // 01
-  IS_ROCK,      // 10
-  IS_NOBUILD,   // 11
+  MAP_FREE = 0,  
+  MAP_TOWER,
+  MAP_ROCK,     
+  MAP_NOBUILD, 
 };
-
-// in this array the look and the behaviour of the current map is stored
-uint8_t mapComposition[NODES];
-
-// in this array the are the calculated costs from pathfinding
-uint8_t mapCosts[NODES];
-
-uint8_t headquarterPosition = 0;
 
 struct list {
   static const uint8_t maximum = 12;
@@ -72,6 +54,38 @@ struct mapMangager {
     }
   }
 
+  void setNode(uint8_t index, uint8_t type) {
+    //Serial.println("setNode at xR: " + String(xR) + " yR: " + String(yR) + " type: " + String(type));
+    
+    mapComposition[index] = type;
+  }
+  
+  void setNode(uint8_t xR, uint8_t yR, uint8_t type) {
+
+    setNode(getIndex(xR, yR), type);
+  }
+
+  uint8_t getNode(uint8_t index) {
+    return mapComposition[index];
+  }
+
+  uint8_t getNode(uint8_t xR, uint8_t yR) {
+    return getNode(getIndex(xR, yR));
+  }
+
+  void placeTower(uint8_t xR, uint8_t yR) {
+    //Serial.println("placeTower");
+
+    // one tower uses 4 nodes
+    setNode(xR,     yR,     MAP_TOWER);
+    setNode(xR,     yR + 1, MAP_TOWER);
+    setNode(xR + 1, yR,     MAP_TOWER);
+    setNode(xR + 1, yR + 1, MAP_TOWER);
+
+    // to trigger new pathfinding
+    mapChanged = true;
+  }
+
 #ifdef DEBUG_PATH_MAP
   void printMap() {
     Serial.println("Map:");
@@ -92,7 +106,7 @@ struct mapMangager {
 
         switch (mapComposition[index]) {
 
-          case IS_FREE:
+          case MAP_FREE:
             if (mapCosts[index] != 0xff) {
               Serial.printf(" %02d ", mapCosts[index]);
             } else {
@@ -100,15 +114,15 @@ struct mapMangager {
             }
             break;
 
-          case IS_TOWER:
+          case MAP_TOWER:
             Serial.print("[To]");
             break;
 
-          case IS_ROCK:
+          case MAP_ROCK:
             Serial.print("[__]");
             break;
 
-          case IS_NOBUILD:
+          case MAP_NOBUILD:
             Serial.printf(".%02d.", mapCosts[index]);
             break;
         }
@@ -120,26 +134,11 @@ struct mapMangager {
   }
 #endif
 
-  void setNode(uint8_t xR, uint8_t yR, uint8_t type) {
-    //Serial.println("setNode at xR: " + String(xR) + " yR: " + String(yR) + " type: " + String(type));
+  uint8_t getDirection(int8_t x, int8_t y) {
 
-    mapComposition[getIndex(xR, yR)] = type;
-  }
-
-  void placeTower(uint8_t xR, uint8_t yR) {
-    //Serial.println("placeTower");
-
-    // one tower uses 4 nodes
-    setNode(xR,     yR,     IS_TOWER);
-    setNode(xR,     yR + 1, IS_TOWER);
-    setNode(xR + 1, yR,     IS_TOWER);
-    setNode(xR + 1, yR + 1, IS_TOWER);
-
-    // to trigger new pathfinding
-    mapChanged = true;
-  }
-
-  uint8_t getDirection(uint8_t x, uint8_t y) {
+    // if they are not even in they map it is simple
+    if (x < 2)
+      return GO_RIGHT;
 
     int8_t xR = getXR(x);
     int8_t yR = getXR(y);
@@ -199,36 +198,21 @@ struct mapMangager {
 
         switch (mapComposition[index]) {
 
-          case IS_FREE:
-            if (drawRaster) {
-#ifdef MAP_STYLE_ONE
-              arduboy.drawPixel(xPos + 1, yPos, BLACK);
-              arduboy.drawPixel(xPos + 5, yPos, BLACK);
-              arduboy.drawPixel(xPos, yPos + 1, BLACK);
-              arduboy.drawPixel(xPos, yPos + 5, BLACK);
-#else
-              arduboy.drawPixel(xPos, yPos, BLACK);
-              arduboy.drawPixel(xPos, yPos + 5, BLACK);
-              arduboy.drawPixel(xPos + 5, yPos, BLACK);
-              arduboy.drawPixel(xPos + 5, yPos + 5, BLACK);
-#endif
-            }
+          case MAP_FREE:
             break;
 
-          case IS_TOWER:
+          case MAP_TOWER:
 
             if (index == headquarterPosition) {
-              drawBitmapFast(xPos + 1, yPos - 1, symbolSet, 7, 0, false);
+              drawBitmapFast(xPos + 1, yPos - 1, editorSymbole, 5, EDITOR_HQ, false);
             }
-            
             break;
 
-          case IS_ROCK:
+          case MAP_ROCK:
             drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR) % 4, yR % 2);
             break;
 
-          case IS_NOBUILD:
-
+          case MAP_NOBUILD:
             drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR + xR % 3) % 6 + 4, yR % 2);
             break;
         }
@@ -244,7 +228,7 @@ struct mapMangager {
     if (lClosed[i] == true)
       return;
 
-    if (mapComposition[i] == IS_ROCK || mapComposition[i] == IS_TOWER)
+    if (mapComposition[i] == MAP_ROCK || mapComposition[i] == MAP_TOWER)
       return;
 
 #ifdef DEBUG_PATH_PRINT
@@ -255,59 +239,119 @@ struct mapMangager {
 
   void createMap() {
 
-      setNode(4, 0, IS_ROCK);
+    setNode(4, 0, MAP_ROCK);
 
-      setNode(10, 1, IS_ROCK);
-      setNode(10, 2, IS_ROCK);
-      setNode(10, 3, IS_ROCK);
-      setNode(10, 4, IS_ROCK);
-      setNode(10, 5, IS_ROCK);
-      setNode(10, 6, IS_ROCK);
-      setNode(10, 7, IS_ROCK);
-      setNode(10, 8, IS_ROCK);
+    setNode(10, 1, MAP_ROCK);
+    setNode(10, 2, MAP_ROCK);
+    setNode(10, 3, MAP_ROCK);
+    setNode(10, 4, MAP_ROCK);
+    setNode(10, 5, MAP_ROCK);
+    setNode(10, 6, MAP_ROCK);
+    setNode(10, 7, MAP_ROCK);
+    setNode(10, 8, MAP_ROCK);
 
-      setNode(7, 6, IS_NOBUILD);
-      setNode(7, 7, IS_NOBUILD);
-      setNode(8, 7, IS_NOBUILD);
-      setNode(6, 6, IS_NOBUILD);
-      setNode(6, 7, IS_NOBUILD);
-      setNode(6, 8, IS_NOBUILD);
-      setNode(5, 6, IS_NOBUILD);
-      setNode(5, 7, IS_NOBUILD);
-      setNode(5, 8, IS_NOBUILD);
-      setNode(4, 6, IS_NOBUILD);
-      setNode(4, 7, IS_NOBUILD);
-      setNode(4, 8, IS_NOBUILD);
+    setNode(7, 6, MAP_NOBUILD);
+    setNode(7, 7, MAP_NOBUILD);
+    setNode(8, 7, MAP_NOBUILD);
+    setNode(6, 6, MAP_NOBUILD);
+    setNode(6, 7, MAP_NOBUILD);
+    setNode(6, 8, MAP_NOBUILD);
+    setNode(5, 6, MAP_NOBUILD);
+    setNode(5, 7, MAP_NOBUILD);
+    setNode(5, 8, MAP_NOBUILD);
+    setNode(4, 6, MAP_NOBUILD);
+    setNode(4, 7, MAP_NOBUILD);
+    setNode(4, 8, MAP_NOBUILD);
 
-      setNode(15, 2, IS_ROCK);
-      setNode(15, 3, IS_ROCK);
-      setNode(15, 4, IS_ROCK);
-      setNode(15, 5, IS_ROCK);
+    setNode(15, 2, MAP_ROCK);
+    setNode(15, 3, MAP_ROCK);
+    setNode(15, 4, MAP_ROCK);
+    setNode(15, 5, MAP_ROCK);
 
-      setNode(12, 7, IS_ROCK);
-      setNode(13, 7, IS_ROCK);
+    setNode(12, 7, MAP_ROCK);
+    setNode(13, 7, MAP_ROCK);
 
-      setNode(19, 1, IS_TOWER);
+    setNode(18, 1, MAP_TOWER);
   }
 
-  void loadMap(uint16_t mapNumber) {
+  void drawMapPreview(uint8_t xOffset, int16_t yOffset, uint8_t mapNumber) {
+
+    // draw frame around minimap
+    arduboy.drawRect(xOffset, yOffset, 2 * ROWS + 2, 2 * COLUMNS + 2, BLACK);
+
+  /*
+      drawBitmapSlow(5, 5, mapLocked, 8, 11, 0, 0, BLACK);
+      
+      arduboy.drawBitmap(15, 5, mapLocked, 8, 11, BLACK);
+  */
+
+    // check is this map is still locked
+    if (mapNumber >= unlockedMaps) {
+      // black background
+      arduboy.fillRect(xOffset + 2, yOffset + 2, 2 * ROWS - 2, 2 * COLUMNS + 2, BLACK);
+
+      // a lock symbol
+      drawBitmapSlow(xOffset + 17, yOffset + 6, mapLocked, 8, 11, 0, 0, WHITE);
+      //arduboy.drawBitmap(xOffset + 17, yOffset + 6, mapLocked, 8, 11, WHITE);
+      return;
+    } 
+
+    // open the frame on the left side
+    arduboy.drawLine(xOffset, yOffset + 9, xOffset, yOffset + 11, WHITE);
+
+    for (uint8_t yR = 0; yR < COLUMNS; yR++) {
+      int16_t yPos = 1 + yOffset + yR * 2;
+
+      for (uint8_t xR = 0; xR < ROWS; xR++) {
+        uint8_t xPos = 1 + xOffset + xR * 2;
+
+        uint16_t data = getMapNode(getIndex(xR, yR), mapNumber);
+
+        switch (data) {
+          case MAP_FREE:
+            break;
+
+          case MAP_TOWER:
+            // this headquarter is too big for the 4 pixels per node, so it can be covered a bit
+            arduboy.drawRoundRect(xPos - 1, yPos - 1, 4, 4, 1, BLACK);
+            break;
+
+          case MAP_ROCK:
+            arduboy.fillRect(xPos, yPos, 2, 2, BLACK);
+            break;
+
+          case MAP_NOBUILD:
+            arduboy.drawPixel(xPos, yPos + 1, BLACK);
+            arduboy.drawPixel(xPos + 1, yPos, BLACK);
+            break;
+        }
+      }
+    }
+  }
+
+  uint16_t getMapNode(uint8_t node, uint8_t mapNumber) {
+
+    // because there are 4 byte in every pgm space map byte
+    uint8_t index = node / 4;
+
+    // data for 4 bytes
+    uint8_t rawData = pgm_read_byte(allMaps + index + mapNumber * 45);
+
+    // must be shiftes 2, 4 or 6 times
+    uint8_t shifts = (3 - (node % 4)) * 2;
+
+    // shift data to get the correct two bits
+    return (rawData & (0b00000011 << shifts)) >> shifts;
+  }
+
+  void loadMap(uint8_t mapNumber) {
 
     for (uint8_t n = 0; n < NODES; n++) {
 
-      // because there are 4 byte in every pgm space map byte
-      uint8_t index = n / 4;
+      uint8_t data = getMapNode(n, mapNumber);
 
-      // data for 4 bytes
-      uint8_t rawData = pgm_read_byte(allMaps + index + mapNumber * 45);
-
-      // must be shiftes 2, 4 or 6 times
-      uint8_t shifts = (3 - (n % 4)) * 2;
-
-      // shift data to get the correct two bits
-      uint8_t data = (rawData & (0b00000011 << shifts)) >> shifts;
-      
       // save position of headquarter
-      if (data == IS_TOWER) {
+      if (data == MAP_TOWER) {
         Serial.println("headquarter is:" + String(n));
         headquarterPosition = n;
       }
@@ -370,6 +414,9 @@ struct mapMangager {
 
   bool findPath() {
 
+    // reset this bool to find new path only once
+    mapChanged = false;
+
     // they do not need to be global!
     list openList;
     list nextList;
@@ -420,7 +467,7 @@ struct mapMangager {
       // add new neightbours to openList
       memcpy(&openList, &nextList, sizeof(list));
 
-      if (/*n == PATH_START*/  openList.len == 0) {
+      if (openList.len == 0) {
 
         // delete the unused node costs/nums
         for (uint8_t i = 0; i < NODES; i++) {

@@ -43,7 +43,9 @@ enemyManager eM;
 #include "Towers.h"
 towerManager tM;
 
-#include "Checks.h"
+#include "Info.h"
+#include "Menu.h"
+#include "Game.h"
 #include "Buttons.h"
 
 void setup() {
@@ -64,17 +66,19 @@ void setup() {
   arduboy.begin();
   arduboy.setFrameRate(GAME_FRAMES);
 
-  //mM.createMap();
-  //mM.generateMapArray();
+  mM.createMap();
+  mM.generateMapArray();
 
   mM.loadMap(1);
 
+  /*
   buyTower(3, 1, TOWER_LASER);
-  buyTower(11, 3, TOWER_CANON);
-  buyTower(14, 0, TOWER_MG);
+  buyTower(4, 4, TOWER_RAILGUN); 
+  buyTower(11, 3, TOWER_CANNON);
+  buyTower(14, 0, TOWER_GATLING);
   buyTower(14, 6, TOWER_FLAME);
-  buyTower(2, 7, TOWER_FLAK);
-
+  buyTower(2, 7, TOWER_FROST);
+  */
 
   eM.add(0, 18, HUMAN_MG);
   eM.add(40, 18, ANIMAL_RAT);
@@ -87,43 +91,34 @@ void setup() {
   //delay(99000);
 }
 
-void modeMenu() {
-
-}
-
 void loop() {
-
-  if (!(arduboy.nextFrame()))
+  // if normal speed is false it will be max speed
+  if (!(arduboy.nextFrame()) && isNormalSpeed)
     return;
-
 
 #ifdef DEBUG_FRAME_TIME
   uint32_t start = micros();
 #endif
 
+  arduboy.pollButtons();
   arduboy.fillScreen(WHITE);
 
-  if (mapChanged) {
-    mM.findPath();
+  checkButtons();
 
-    mapChanged = false;
-  }
-
-  mM.drawMap();
-
-  tM.update();
-  eM.update();
-
-  menuButtons();
-  drawCursor();
+  drawMenus();
 
 #ifdef DEBUG_FRAME_TIME
   // pirnt time for a frame to screen
-  mF.setCursor(2, 58);
-  mF.print(String(micros() - start));
+  //mF.setCursor(80, 58);
+  //mF.print(String(micros() - start));
+
+  mF.setCursor(2, 0);
+  mF.print(String(stateButtonA));
 #endif
 
   arduboy.display();
+
+
 
   gameFrames++;
 }
