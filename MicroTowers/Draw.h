@@ -135,7 +135,7 @@ void drawBitmapFast(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8
 }
 
 
-void fillRectChess(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color) {
+void fillChessRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color) {
   if (w + x > 128)
     return;
 
@@ -221,16 +221,16 @@ void drawTowerSocket(uint8_t x, uint8_t y, uint8_t lvl) {
 }
 
 void drawMapBorders() {
+  // some fixed values just for better code reading
+  const uint8_t xPos = 122;
+  const uint8_t yEnd = 55;
+  
   // draw left and bottom lines
   arduboy.drawLine(0, 0, 0, 24, BLACK);
   arduboy.drawLine(0, 30, 0, 54, BLACK);
-  arduboy.drawLine(0, 55, 121, 55, BLACK);
+  arduboy.drawLine(0, yEnd, xPos, yEnd, BLACK);
 
-  // some fixed values just for better code reading
-  const uint8_t xPos = 121;
-  const uint8_t yEnd = 55;
-
-  if (xPosMenu > xPos + 2) {
+  if (xPosRightMenu > xPos + 2) {
     // draw complete line right to battlefield
     arduboy.drawLine(xPos, 0, xPos, yEnd, BLACK);
 

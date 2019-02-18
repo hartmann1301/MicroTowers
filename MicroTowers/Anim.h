@@ -57,7 +57,7 @@ struct animation {
 };
 
 struct animationManager {
-  static const uint8_t maximum = 16;
+  static const uint8_t maximum = 10;
   animation list[maximum];
 
   void add(uint8_t x, uint8_t y, uint8_t type, int8_t state) {

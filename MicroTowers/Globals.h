@@ -2,8 +2,7 @@
 #define Globals_h
 
 #include <Arduino.h>
-#include <math.h>
-
+#include <EEPROM.h>
 #include <Arduboy2.h>
 #include <ArduboyTones.h>
 
@@ -39,17 +38,18 @@ void getButtons() {
 #endif
 }
 
-#define COLUMNS   9
-#define ROWS      20
-#define NODES     (ROWS*COLUMNS)
+#define COLUMNS             9
+#define ROWS                20
+#define NODES               (ROWS*COLUMNS)
+#define NODES_COMPRESSED    (NODES / 4)
 
-#define BUFFER_MAX (WIDTH*HEIGHT/8)
+#define BUFFER_MAX          (WIDTH*HEIGHT/8)
 
-#define RASTER 6
-#define HALF_RASTER (RASTER / 2)
+#define RASTER              6
+#define HALF_RASTER         (RASTER / 2)
 
-#define RASTER_OFFSET_X 1
-#define RASTER_OFFSET_Y 0
+#define RASTER_OFFSET_X     1
+#define RASTER_OFFSET_Y     0
 
 #define LONGPRESS_INFO      15
 #define LONGPRESS_TIME      30
@@ -57,42 +57,45 @@ void getButtons() {
 #define MAINMENU_ITEMS      4
 #define MAPSLIST_ITEMS      6
 
+#define MENU_ITEMS_BUILD    8
 #define MENU_ITEMS_EDITOR   4
 #define MENU_ITEMS_TOWER    3
-#define MENU_ITEMS_PLAYING  8
 
-#define ICON_HEIGHT  7
-#define ICON_WIDTH  ICON_HEIGHT
+#define TOWER_LEVEL_MAX     3
 
-#define INT8_MIN -128
-#define INT8_MAX 127
+#define ICON_HEIGHT         7  
+#define ICON_WIDTH          ICON_HEIGHT
+
+#define INT8_MIN            -128
+#define INT8_MAX            127
 
 // this buffer is for the drawing function
 uint8_t* buffer = arduboy.getBuffer();
 
-/*
-bool isPlayMode = false;
-bool isGameOver = false;
-bool isStartAnimation = true;
-*/
-
-
-
-// editor map, this will be saved to the eeprom
-uint8_t mapEditorTemp[NODES / 4];
+enum {
+  MODE_MAINMENU = 0,
+  MODE_MAPS_LIST,
+  MODE_PLAYING_INFO,  
+  MODE_PLAYING,
+  MODE_PLAYING_BUILD,
+  MODE_PLAYING_TOWER,
+  MODE_EDITOR,
+  MODE_EDITOR_MENU,
+  MODE_OPTIONS,  
+  MODE_CREDITS
+};
+uint8_t gameMode;
 
 // in this array the look and the behaviour of the current map is stored
-uint8_t mapComposition[NODES];
+uint8_t mapComposition[NODES / 4];
 
 // in this array are the calculated costs from pathfinding
 uint8_t mapCosts[NODES];
 
 uint8_t headquarterPosition = 0;
 
-uint8_t xPosMenu = 125;
+uint8_t xPosRightMenu = 128;
 bool cursorPressed = false;
-
-//bool isLongPressed = false;
 
 bool isNormalSpeed = true;
 bool mapChanged = true;
@@ -119,10 +122,10 @@ uint8_t indexOptions = 0;
 int16_t indexMainMenuDelayed = 0;
 int16_t indexMapsListDelayed = 0;
 
-
-//eeprom
-uint8_t unlockedMaps = 4;
+//eeprom data
+uint8_t unlockedMaps = 5;
 uint8_t currentCoins = 9;
+//
 
 bool isLongPressInfo(int8_t buttonState) {
   return buttonState > LONGPRESS_INFO;
@@ -132,19 +135,6 @@ bool isLongPressed(int8_t buttonState) {
   return buttonState > LONGPRESS_TIME;
 }
 
-enum {
-  MODE_MAINMENU = 0,
-  MODE_MAPS_LIST,
-  MODE_PLAYING_INFO,  
-  MODE_PLAYING,
-  MODE_PLAYING_BUILD,
-  MODE_PLAYING_TOWER,
-  MODE_EDITOR,
-  MODE_EDITOR_MENU,
-  MODE_OPTIONS,  
-  MODE_CREDITS
-};
-
 bool inPlayingMode(uint8_t m) {
   return m >= MODE_PLAYING_INFO && m <= MODE_PLAYING_TOWER;
 }
@@ -152,9 +142,6 @@ bool inPlayingMode(uint8_t m) {
 bool inEditorMode(uint8_t m) {
   return m == MODE_EDITOR || m == MODE_EDITOR_MENU;
 }
-
-//uint8_t gameMode = MODE_PLAYING;
-uint8_t gameMode = MODE_MAPS_LIST;
 
 enum {
   GO_RIGHT = 0,
@@ -172,6 +159,7 @@ enum {
   SYMBOL_WAVE,
   SYMBOL_UPGRADE,  
   SYMBOL_INFO,
+  SYMBOL_SELL,
   SYMBOL_FASTMODE
 };
 
@@ -183,12 +171,18 @@ enum {
 };
 
 enum {
+  TOWER_MENU_UPGRADE = 0,  
+  TOWER_MENU_INFO,
+  TOWER_MENU_SELL
+};
+
+enum {
   TOWER_GATLING = 0,
   TOWER_CANNON,
-  TOWER_LASER,
+  TOWER_FROST, 
   TOWER_FLAME,
   TOWER_RAILGUN,  
-  TOWER_FROST,  
+  TOWER_LASER,   
   TOWER_SHOCK,  
   TOWER_SUPPORT
 };
@@ -203,5 +197,21 @@ const uint8_t towerPrices [] PROGMEM = {
   20,
   20  
 };
+
+const int8_t sektorStartX [] PROGMEM = {
+  3,  3,  2,  1,  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3    
+};
+
+const int8_t sektorStartY [] PROGMEM = {
+  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3,  3,  3,  2,  1 
+};
+
+int8_t getDirectionX(uint8_t sektor) {
+  return pgm_read_byte(sektorStartX + sektor);
+}
+
+int8_t getDirectionY(uint8_t sektor) {
+  return pgm_read_byte(sektorStartY + sektor);
+}
 
 #endif

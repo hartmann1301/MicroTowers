@@ -10,12 +10,12 @@ void drawMapInfos(uint8_t lvl) {
 
   } else {
     mF.print(F("LEVEL"));
-    mF.print(String(lvl));
+    mF.print(lvl);
   }
 
   mF.setCursor(5, 34);
   mF.print(F("SCR:"));
-  mF.print(String(lvl * 71 + 13));
+  mF.print(lvl * 71 + 13);
 }
 
 void drawMapsList() {
@@ -43,11 +43,11 @@ void drawMapsList() {
   }
 }
 
-uint8_t getDrawingxPosMenu(uint8_t xPosMenu, bool isActiveIndex) {
+uint8_t getDrawingxPosRightMenu(uint8_t xPosRightMenu, bool isActiveIndex) {
   if (isActiveIndex) {
-    return xPosMenu - 1;
+    return xPosRightMenu - 1;
   } else {
-    return xPosMenu;
+    return xPosRightMenu;
   }
 }
 
@@ -65,20 +65,22 @@ uint8_t drawCircleIfActive(uint8_t xDraw, uint8_t yPos, bool isActiveIndex) {
   return yPos;
 }
 
-bool shiftMenuInIf(uint8_t m) {
-  if (gameMode == m) {
-    // shift shop inside screen
-    if (xPosMenu > 121)
-      xPosMenu--;
+bool shiftMenuOut() {
 
-  } else {
-    // shift shop outside screen
-    if (xPosMenu < 132)
-      xPosMenu++;
-  }
+  // shift menu outside screen
+  if (xPosRightMenu < 132)
+    xPosRightMenu++;
+}
+
+
+bool shiftMenuIn() {
+
+  // shift menu inside screen
+  if (xPosRightMenu > 121)
+    xPosRightMenu--;
 
   // return true to not draw, no need to it will be outside screen
-  if (xPosMenu > 127) {
+  if (xPosRightMenu > 127) {
     return true;
   } else {
     return false;
@@ -98,17 +100,45 @@ void setVeritcalOffset(uint8_t &yPos, bool isActive) {
 
 void drawPlayingTowerMenu() {
 
+  // this will do the shifting and return true if outside display
+  if (shiftMenuIn())
+    return;
 
+  uint8_t yPos = 14;
+  for (uint8_t i = 0; i < MENU_ITEMS_TOWER; i++) {
+
+    bool isActiveIndex = (i == indexTowerMenu);
+
+    // the active index if a bit more in the screen
+    uint8_t xDraw = getDrawingxPosRightMenu(xPosRightMenu, isActiveIndex);
+
+    yPos = drawCircleIfActive(xDraw, yPos, isActiveIndex);
+
+    // draw icon of editor item, xDraw + 1 because are only 5 width
+    drawBitmapFast(xDraw, yPos, symbolSet, ICON_WIDTH, i + SYMBOL_UPGRADE, false);
+
+    // adds more if current index is active
+    setVeritcalOffset(yPos, isActiveIndex);
+  }
 }
+
 
 void drawPlayingBuildMenu() {
 
   // this will do the shifting and return true if outside display
-  if (shiftMenuInIf(MODE_PLAYING_BUILD))
+  if (shiftMenuIn())
     return;
 
   uint8_t yPos = 1;
-  for (uint8_t i = 0; i < MENU_ITEMS_PLAYING; i++) {
+  for (uint8_t i = 0; i < MENU_ITEMS_BUILD; i++) {
+
+    bool isActiveIndex = (i == indexBuildMenu);
+
+    // the active index if a bit more in the screen
+    uint8_t xDraw = getDrawingxPosRightMenu(xPosRightMenu, isActiveIndex);
+
+    // draw socket and add y offset for icon if active
+    yPos = drawCircleIfActive(xDraw, yPos, isActiveIndex);
 
     // get offset for differnet towers level 1
     uint8_t offset = 0;
@@ -118,14 +148,6 @@ void drawPlayingBuildMenu() {
       offset = TOWER_SHOCK * 16 + (i - TOWER_SHOCK) * 4;
     }
 
-    bool isActiveIndex = (i == indexBuildMenu);
-
-    // the active index if a bit more in the screen
-    uint8_t xDraw = getDrawingxPosMenu(xPosMenu, isActiveIndex);
-
-    // draw socket and add y offset for icon if active
-    yPos = drawCircleIfActive(xDraw, yPos, isActiveIndex);
-
     // draw icon of tower
     drawBitmapFast(xDraw, yPos, allTowers, ICON_WIDTH, offset, false);
 
@@ -134,10 +156,11 @@ void drawPlayingBuildMenu() {
   }
 }
 
+
 void drawEditorMenu() {
 
   // this will do the shifting and return true if outside display
-  if (shiftMenuInIf(MODE_EDITOR_MENU))
+  if (shiftMenuIn())
     return;
 
   uint8_t yPos = 11;
@@ -146,17 +169,18 @@ void drawEditorMenu() {
     bool isActiveIndex = (i == indexBuildMenu);
 
     // the active index if a bit more in the screen
-    uint8_t xDraw = getDrawingxPosMenu(xPosMenu, isActiveIndex);
+    uint8_t xDraw = getDrawingxPosRightMenu(xPosRightMenu, isActiveIndex);
 
     yPos = drawCircleIfActive(xDraw, yPos, isActiveIndex);
 
-    // draw icon of tower
+    // draw icon of editor item, xDraw + 1 because are only 5 width
     drawBitmapFast(xDraw + 1, yPos, editorSymbole, 5, i, false);
 
     // adds more if current index is active
     setVeritcalOffset(yPos, isActiveIndex);
   }
 }
+
 
 void drawOptionsMenu() {
 
@@ -172,12 +196,15 @@ void drawCredits() {
 
 void updateGame() {
 
-  tM.update();
-  eM.update();
-
   if (mapChanged) {
     mM.findPath();
   }
+
+  tM.update();
+  eM.update();
+  pM.update();
+
+  checkHits();
 }
 
 void drawMenus() {
@@ -203,18 +230,27 @@ void drawMenus() {
 
   } else if (inPlayingMode(gameMode)) {
 
-    // they need to be called here to shift the menu back
-    drawPlayingBuildMenu();
-    drawPlayingTowerMenu();
+    if (gameMode == MODE_PLAYING) {
+      shiftMenuOut();
 
-    if (gameMode == MODE_PLAYING_INFO) {
+    } else if (gameMode == MODE_PLAYING_BUILD) {
+      drawPlayingBuildMenu();
+
+    } else if (gameMode == MODE_PLAYING_TOWER) {
+      drawPlayingTowerMenu();
+
+    } else if (gameMode == MODE_PLAYING_INFO) {
       //TODO:
     }
 
   } else if (inEditorMode(gameMode)) {
 
-    // need to be called here to shift the menu back
-    drawEditorMenu();
+    if (gameMode == MODE_EDITOR) {
+      shiftMenuOut();
+
+    } else if (gameMode == MODE_EDITOR_MENU) {
+      drawEditorMenu();
+    }
 
   } else if (gameMode == MODE_OPTIONS) {
     drawOptionsMenu();

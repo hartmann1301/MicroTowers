@@ -4,8 +4,8 @@
 #define STATE_DEAD     250
 #define STATE_SPAWN    255
 
-#define LOOKS_LEFT_BIT   0b01000000
-#define LOOKS_LEFT_MASK  0b10111111
+#define BIT_IS_ACTIVE   6 // !!!!!!
+#define BIT_LOOKS_LEFT  7
 
 enum {
   ANIMAL_RAT,
@@ -28,21 +28,26 @@ enum {
 struct enemy {
   int8_t x;
   int8_t y;
-  uint8_t type;
 
+  uint8_t type;
   uint8_t state = 0;
 
   uint16_t health;
 
+  // first 3 * 2 bits are directions, than is active and looks left boolean
+  uint8_t pathStorage = 0;
   bool active = false;
 
-  uint8_t pathStorage = 0;
+  // stores the cost value, the smaller it is the nearer is the hq
+  uint8_t mapCosts;
 
+  uint8_t getCenterX() {
+    return x + 2;
+  }
 
-  // to count 6 steps before recalculating the direction
-  uint8_t stepCounter = 0;
-
-  uint8_t mapProgress;
+  uint8_t getCenterY() {
+    return y + 5;
+  }
 
   void saveDirection(uint8_t dir) {
 
@@ -83,7 +88,7 @@ struct enemy {
     uint8_t dir;
     if (state  < 3) {
       // look at the map and get the right direction
-      dir = mM.getDirection(x + 2, y + 5);
+      dir = mM.getDirection(getCenterX(), getCenterY());
 
       // save it
       saveDirection(dir);
@@ -94,8 +99,11 @@ struct enemy {
 
     }
 
+    // check if reached a new cost raster
+    mapCosts = mM.getCurrentCost(getCenterX(), getCenterY());
+
     // check if headquarter was reached
-    if (dir == NO_DIRECTION) {
+    if (dir == NO_DIRECTION || health == 0) {
 
       if (type < 14) {
         type++;
@@ -103,6 +111,9 @@ struct enemy {
         type = 0;
       }
 
+      health = 100 * 100;
+
+      // respawn
       x = millis() % 4 - 8;
       y = 22;
     }
@@ -110,6 +121,7 @@ struct enemy {
     // increment state from 0-5
     if (state == 5) {
       state = 0;
+
     } else {
       state++;
     }
@@ -119,7 +131,7 @@ struct enemy {
       x++;
 
       // clear the is looking Left bit
-      pathStorage &= LOOKS_LEFT_MASK;
+      bitClear(pathStorage, BIT_LOOKS_LEFT);
 
     } else if (dir == GO_UP && y > 0) {
       y--;
@@ -131,7 +143,7 @@ struct enemy {
       x--;
 
       // set the is looking Left bit
-      pathStorage |= LOOKS_LEFT_BIT;
+      bitSet(pathStorage, BIT_LOOKS_LEFT);
     }
   }
 
@@ -159,7 +171,7 @@ struct enemy {
 
 #ifdef DEGUG_DMG_ENEMYS
     Serial.print(" is:");
-    Serial.println(float(tmpDmg) / 100, 2);
+    Serial.println(tmpDmg / 100, 2);
 #endif
 
     if (health > tmpDmg) {
@@ -177,8 +189,7 @@ struct enemy {
 
   void die() {
     health = 0;
-    state = STATE_DEAD;
-
+    //state = STATE_DEAD;
   }
 
   void drawHealthBar() {
@@ -188,7 +199,8 @@ struct enemy {
   }
 
   void draw() {
-    bool isLookingLeft = LOOKS_LEFT_BIT & pathStorage;
+    bool isLookingLeft = getBit(pathStorage, BIT_LOOKS_LEFT);
+
     uint8_t st = state % 3;
 
     uint8_t w;
@@ -207,16 +219,16 @@ struct enemy {
       img = enemyTwoPods;
     }
 
+    drawHealthBar();
+
     // draw the spirte fast
     drawBitmapFast(x, y, img, w, (type % 5) * 3 + st, isLookingLeft);
   }
 
   bool isInRange(int16_t xTower, int16_t yTower, int16_t range) {
 
-    uint16_t xDist = abs(xTower - x);
-    uint16_t yDist = abs(yTower - y);
-
-    //Serial.println(" xDist:" + String(xDist) + " yDist:" + String(yDist) + " sqrtf:" + String(sqrtf(xDist * xDist + yDist * yDist)));
+    uint16_t xDist = abs(xTower - getCenterX());
+    uint16_t yDist = abs(yTower - getCenterY());
 
     // check if not in rect around range circle
     if (xDist > range || yDist > range)
@@ -228,53 +240,16 @@ struct enemy {
       return true;
 
     // calculate actual distance with pythagoras
-    if (sqrtf(xDist * xDist + yDist * yDist) < range) {
+    if (integerSqrt(xDist * xDist + yDist * yDist) < range) {
       return true;
     } else {
       return false;
     }
   }
-
-  /* wiki
-    function integerSqrt(n):
-      if n < 0:
-          error "integerSqrt works for only nonnegative inputs"
-      else if n < 2:
-          return n
-      else:
-          # Recursive call:
-          smallCandidate = integerSqrt(n >> 2) << 1
-          largeCandidate = smallCandidate + 1
-          if largeCandidate*largeCandidate > n:
-              return smallCandidate
-          else:
-              return largeCandidate
-  */
-
-  bool touchesPosition(uint8_t p_x, uint8_t p_y, uint8_t p_w, uint8_t p_h) {
-    // player to far left
-    if (p_x + p_w < x + 3)
-      return false;
-
-    // player to high up
-    if (p_y + p_h < y + 3)
-      return false;
-
-    // player to far right
-    if (x + 7 < p_x + 3)
-      return false;
-
-    // player to far down
-    if (y + 7 < p_y + 3)
-      return false;
-
-    return true;
-  }
-
 };
 
 struct enemyManager {
-  static const uint8_t maximum = 16;
+  static const uint8_t maximum = 14;
   enemy list[maximum];
 
   void add(uint8_t x, uint8_t y, uint8_t type) {
@@ -301,36 +276,6 @@ struct enemyManager {
     if (!foundSlot)
       Serial.println("Warning, no slot for enemy!");
 #endif
-  }
-
-  /*
-    void setMapProgress() {
-    for (uint8_t i = 0; i < maximum; i++) {
-
-      // check only active enemys
-      if (list[i].active == false)
-        continue;
-
-      list[i].mapProgress = mM.getCost(x, y);
-    }
-    }
-  */
-
-  uint8_t isEnemyAt(uint8_t x, uint8_t y, uint8_t w, uint8_t h) {
-
-    for (uint8_t i = 0; i < maximum; i++) {
-
-      // check only active enemys
-      if (list[i].active == false)
-        continue;
-
-      // if active[0].isPosition(..) return index 1, 0 is no item
-      if (list[i].touchesPosition(x, y, w, h))
-        return i;
-
-    }
-
-    return 0xff;
   }
 
   uint8_t count() {

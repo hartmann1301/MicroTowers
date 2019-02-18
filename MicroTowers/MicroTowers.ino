@@ -23,7 +23,6 @@
 #include "Globals.h"
 #include "Sprites.h"
 #include "Draw.h"
-#include "math.h"
 
 #include "Font.h"
 myFont mF;
@@ -43,9 +42,10 @@ enemyManager eM;
 #include "Towers.h"
 towerManager tM;
 
+#include "Eeprom.h"
 #include "Info.h"
-#include "Menu.h"
 #include "Game.h"
+#include "Menu.h"
 #include "Buttons.h"
 
 void setup() {
@@ -53,7 +53,6 @@ void setup() {
 #ifdef USE_SERIAL
   Serial.begin(57600);
   Serial.println(F("MicroTowers!"));
-
 #endif
 
 #ifdef ESP8266
@@ -61,24 +60,17 @@ void setup() {
 
   // this function must be called or the esp will crash with the first call
   arduboy.setExternalButtonsHandler(getButtons);
+
+  // i think this is only needed for the esp8266 eeprom emulation
+  EEPROM.begin(128);
 #endif
 
   arduboy.begin();
   arduboy.setFrameRate(GAME_FRAMES);
 
-  mM.createMap();
-  mM.generateMapArray();
+  //mM.createMap();
 
-  mM.loadMap(1);
-
-  /*
-  buyTower(3, 1, TOWER_LASER);
-  buyTower(4, 4, TOWER_RAILGUN); 
-  buyTower(11, 3, TOWER_CANNON);
-  buyTower(14, 0, TOWER_GATLING);
-  buyTower(14, 6, TOWER_FLAME);
-  buyTower(2, 7, TOWER_FROST);
-  */
+  goToMainMenu();
 
   eM.add(0, 18, HUMAN_MG);
   eM.add(40, 18, ANIMAL_RAT);
@@ -113,12 +105,10 @@ void loop() {
   //mF.print(String(micros() - start));
 
   mF.setCursor(2, 0);
-  mF.print(String(stateButtonA));
+  mF.print(gameMode);
 #endif
 
   arduboy.display();
-
-
 
   gameFrames++;
 }

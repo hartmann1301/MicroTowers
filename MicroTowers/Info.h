@@ -1,11 +1,8 @@
 #ifndef InfoLine_h
 #define InfoLine_h
 
-const uint8_t yIcon = 57;
-const uint8_t yText = yIcon + 1;
-
-const uint8_t xPosLeft    = 1;
-const uint8_t xPosCenter  = 64;
+#define yIcon 57
+#define yText (yIcon + 1)
 
 void scrollIndex(int16_t &indexInPixels, int16_t pixelValue) {
 
@@ -47,7 +44,32 @@ void drawMainMenuText(int16_t xWrite, uint8_t index) {
   }
 }
 
+
+void drawMainMenuRank() {
+  const uint8_t xPos = 123;
+  const uint8_t xWidth = 5;
+  
+  // background
+  arduboy.fillRect(xPos, 0, xWidth, 56, BLACK);
+
+  // bottom thingi
+  arduboy.drawRect(xPos, 51, xWidth, 3, WHITE);
+
+  // draw rank symbol
+  drawBitmapFast(xPos, 42, rankSymbols, xWidth, 0, false, WHITE); 
+  drawBitmapFast(xPos, 37, rankSymbols, xWidth, 0, false, WHITE);   
+  drawBitmapFast(xPos, 32, rankSymbols, xWidth, 0, false, WHITE);   
+}
+
 void drawMainMenu() {
+
+  // write the games name to the screen
+  mF.setCursor(22, 3);
+  mF.print(F("MICRO TOWERS"));
+
+  // rights part that shows the progress
+  drawMainMenuRank();
+
   // create a bigger index value for scrolling
   int16_t indexInPixels = indexMainMenu * 16;
 
@@ -76,14 +98,14 @@ void drawMainMenu() {
 
 void drawInfosEditor() {
 
-  mF.setCursor(xPosLeft, yText);
+  mF.setCursor(1, yText);
 
   if (!isLongPressInfo(stateButtonB)) {
 
     mF.print(F("EDITOR"));
 
     // explains what these editor symbols mean
-    mF.setCursor(xPosCenter, yText);
+    mF.setCursor(64, yText);
 
     // draw icon because side menu disappeared
     if (gameMode == MODE_EDITOR) {
@@ -116,37 +138,35 @@ void drawInfosEditor() {
 
 void drawInfosOptionsCredits() {
 
-  mF.setCursor(xPosLeft, yText);
+  mF.setCursor(1, yText);
   mF.print(F("PRESS B TO EXIT"));
 }
 
 void drawCoins(uint8_t xPos, uint8_t coins) {
 
   // draw coin icon
-  drawBitmapFast(xPos, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_COIN, false);
+  drawBitmapFast(xPos, yIcon, symbolSet, ICON_WIDTH, SYMBOL_COIN, false);
 
   // draw current coins
   mF.setCursor(xPos + 8, yText);
-  mF.print(String(coins));
-
+  mF.print(coins);
 }
 
 void drawInfosPlaying() {
 
   // draw heart icon
-  drawBitmapFast(45, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_HEART, false);
+  drawBitmapFast(42, yIcon, symbolSet, ICON_WIDTH, SYMBOL_HEART, false);
 
   // draw current life
-  mF.setCursor(53, yText);
-  mF.print(String(79));
+  mF.setCursor(50, yText);
+  mF.print(79);
 
-  // TODO draw wave icon
+  // draw wave icon
+  drawBitmapFast(82, yIcon, symbolSet, ICON_WIDTH, SYMBOL_WAVE, false);
 
-
-
-  // show that you in fast mode right now
-  if (!isNormalSpeed)
-    drawBitmapFast(110, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_FASTMODE, false);
+  // draw current life
+  mF.setCursor(90, yText);
+  mF.print(11);
 }
 
 void drawInfosPlayingMenu() {
@@ -183,25 +203,27 @@ void drawInfosPlayingMenu() {
     }
 
     // draw price of the tower
-    drawCoins(90, pgm_read_byte(towerPrices + indexBuildMenu));
+    drawCoins(88, pgm_read_byte(towerPrices + indexBuildMenu));
 
   } else if (gameMode == MODE_PLAYING_TOWER) {
 
     uint8_t coins;
 
     switch (indexTowerMenu) {
-      case 0:
+      case TOWER_MENU_UPGRADE:
         mF.print(F("UPGRADE"));
+
         // draw price of the upgrade
         coins = 20;
         break;
-      case 1:
-        mF.print(F("SELL"));
+      case TOWER_MENU_INFO:
+        mF.print(F("INFOS"));
+
         // get reward for selling the tower with upgrades
         coins = 7;
-        break;  
-      case 2:
-        mF.print(F("INFOS"));
+        break;
+      case TOWER_MENU_SELL:
+        mF.print(F("SELL"));
 
         // yes this is a return, because there will be no price
         return;
@@ -210,14 +232,18 @@ void drawInfosPlayingMenu() {
     // TODO: return if tower has max level
 
     // draw price for upgrade or reward for sell
-    drawCoins(90, coins);
+    drawCoins(88, coins);
   }
 }
 
 void drawInfosPlayingAll() {
 
   // draw the coins the play has
-  drawCoins(1, currentCoins);
+  drawCoins(2, currentCoins);
+
+  // show that you in fast mode right now
+  if (!isNormalSpeed)
+    drawBitmapFast(112, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_FASTMODE, false);
 
   if (gameMode == MODE_PLAYING) {
     drawInfosPlaying();

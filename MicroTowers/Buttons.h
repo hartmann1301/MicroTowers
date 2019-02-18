@@ -32,7 +32,7 @@ void monitorButtons() {
 
 void editorSetNode() {
   // if same node is already on the map no need to recalculate because nothing changed
-  if (indexBuildMenu == mM.getNode(xCursor, yCursor))
+  if (indexBuildMenu == mM.getCurrentMapNode(xCursor, yCursor))
     return;
 
   // this triggers calculating a new path
@@ -44,7 +44,7 @@ void editorSetNode() {
     mM.setNode(headquarterPosition, MAP_FREE);
 
     // the headquarter will be overwritten
-    headquarterPosition = mM.getIndex(xCursor, yCursor);
+    headquarterPosition = getIndex(xCursor, yCursor);
   }
 
   // the editor enum is the almost the same as the map enum
@@ -113,19 +113,36 @@ void moveCursor() {
 
 bool isCursorAreaType(const uint8_t type) {
 
-  if (mM.getNode(xCursor, yCursor) != type)
+  if (mM.getCurrentMapNode(xCursor, yCursor) != type)
     return false;
 
-  if (mM.getNode(xCursor + 1, yCursor) != type)
+  if (mM.getCurrentMapNode(xCursor + 1, yCursor) != type)
     return false;
 
-  if (mM.getNode(xCursor, yCursor + 1) != type)
+  if (mM.getCurrentMapNode(xCursor, yCursor + 1) != type)
     return false;
 
-  if (mM.getNode(xCursor + 1, yCursor + 1) != type)
+  if (mM.getCurrentMapNode(xCursor + 1, yCursor + 1) != type)
     return false;
 
   return true;
+}
+
+void goToMainMenu() {
+  gameMode = MODE_MAINMENU;
+
+  // the loaded map is main menu background and playable map
+  loadMap(4);
+
+  // needs to be after loading the map
+  tM.add(1, 4, TOWER_GATLING);
+  tM.add(3, 5, TOWER_CANNON);
+  tM.add(4, 2, TOWER_FROST);
+  tM.add(7, 6, TOWER_SUPPORT);
+  tM.add(8, 2, TOWER_FLAME);
+  tM.add(9, 5, TOWER_SHOCK);
+  tM.add(13, 3, TOWER_RAILGUN);
+  tM.add(14, 7, TOWER_LASER);
 }
 
 void buttonsMainMenu() {
@@ -137,9 +154,16 @@ void buttonsMainMenu() {
     switch (indexMainMenu) {
       case 0:
         gameMode = MODE_MAPS_LIST;
+
+        // load editor map from eeprom for little map preview
+        loadMapFromEEPROM();
+
         break;
       case 1:
         gameMode = MODE_EDITOR;
+
+        // load editor map from eeprom to modify it
+        loadMapFromEEPROM();
 
         // because the editor menu is using the same index
         indexBuildMenu = 0;
@@ -170,13 +194,13 @@ void buttonsMapsList() {
     gameMode = MODE_PLAYING;
 
     // put the current map from pgm space to mapComposition array
-    mM.loadMap(indexMapsList);
+    loadMap(indexMapsList);
   }
 
   // go back to main menu
   if (arduboy.justReleased(B_BUTTON)) {
 
-    gameMode = MODE_MAINMENU;
+    goToMainMenu();
 
     // TODO maybe load the main menu map
   }
@@ -190,8 +214,6 @@ void buttonsMapsList() {
 }
 
 void buttonsPlaying() {
-
-
 
   if (arduboy.justReleased(B_BUTTON)) {
 
@@ -207,7 +229,7 @@ void buttonsPlaying() {
   moveCursor();
 }
 
-void buttonsPlayingMenu() {
+void buttonsPlayingMenuBuild() {
 
   if (arduboy.justReleased(A_BUTTON))
     tryToBuildTower();
@@ -222,15 +244,37 @@ void buttonsPlayingMenu() {
   if (isTimeoutActive())
     return;
 
-  checkUpDown(indexBuildMenu, MENU_ITEMS_PLAYING);
+  checkUpDown(indexBuildMenu, MENU_ITEMS_BUILD);
 
   setCursorTimeout();
 }
 
-void buttonsPlayingTower() {
+void buttonsPlayingMenuTower() {
 
-  if (arduboy.justReleased(A_BUTTON) || arduboy.justReleased(B_BUTTON))
+  if (arduboy.justReleased(A_BUTTON)) {
+    switch (indexTowerMenu) {
+      case TOWER_MENU_UPGRADE:
+        upgradeTower();
+        break;
+      case TOWER_MENU_INFO:
+        Serial.println("do something in tower menu");
+        break;
+      case TOWER_MENU_SELL:
+        sellTower();
+        return;
+    }
+  }
+
+  // go back to play mode
+  if (arduboy.justReleased(B_BUTTON))
     gameMode = MODE_PLAYING;
+
+  if (isTimeoutActive())
+    return;
+
+  checkUpDown(indexTowerMenu, MENU_ITEMS_TOWER);
+
+  setCursorTimeout();
 }
 
 void buttonsPlayingInfo() {
@@ -245,15 +289,18 @@ void buttonsEditor() {
     editorSetNode();
 
   if (arduboy.justReleased(B_BUTTON)) {
-    Serial.println("go to menu");
     gameMode = MODE_EDITOR_MENU;
   }
 
   // this is to create the maps
   if (isLongPressed(stateButtonA))
-    mM.generateMapArray();
+    saveMapToEEPROM();
 
   moveCursor();
+}
+
+void clearEditorMap() {
+
 }
 
 void buttonsEditorMenu() {
@@ -263,6 +310,10 @@ void buttonsEditorMenu() {
 
   if (isLongPressed(stateButtonB))
     gameMode = MODE_MAINMENU;
+
+  // delete the whole map
+  if (isLongPressed(stateButtonA) && indexBuildMenu == EDITOR_DELETE)
+    memset(mapComposition, MAP_FREE, NODES_COMPRESSED);
 
   if (isTimeoutActive())
     return;
@@ -338,7 +389,7 @@ void checkButtons() {
 
     // is global while playing to go back to the maps list
     if (isLongPressed(stateButtonB))
-      gameMode = MODE_MAPS_LIST;
+      goToMainMenu();
 
     // toggles the gamespeed for fast mode
     if (isLongPressed(stateButtonA))
@@ -349,10 +400,10 @@ void checkButtons() {
       buttonsPlaying();
 
     } else if (gameMode == MODE_PLAYING_BUILD) {
-      buttonsPlayingMenu();
+      buttonsPlayingMenuBuild();
 
     } else if (gameMode == MODE_PLAYING_TOWER) {
-      buttonsPlayingTower();
+      buttonsPlayingMenuTower();
 
     } else if (gameMode == MODE_PLAYING_INFO) {
       buttonsPlayingInfo();
@@ -361,12 +412,12 @@ void checkButtons() {
   } else if (inEditorMode(gameMode)) {
 
     // is global in editor to go back to main menu
-    if (isLongPressed(stateButtonB))
-      gameMode = MODE_MAINMENU;
+    if (isLongPressed(stateButtonB)) {
+      // also generate and print map array via serial interface
+      saveMapToEEPROM();
 
-    // generate and print map array via serial interface
-    if (isLongPressed(stateButtonA))
-      mM.generateMapArray();
+      goToMainMenu();
+    }
 
     // specifice mode funtions
     if (gameMode == MODE_EDITOR) {
@@ -380,7 +431,7 @@ void checkButtons() {
 
     // return to main menu
     if (arduboy.justReleased(A_BUTTON) || arduboy.justReleased(B_BUTTON))
-      gameMode = MODE_MAINMENU;
+      goToMainMenu();
 
     // controll the options list with cursor
     if (gameMode == MODE_OPTIONS)

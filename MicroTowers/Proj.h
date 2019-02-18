@@ -2,126 +2,89 @@
 #define Projectiles_h
 
 struct projectile {
-  uint8_t x;
-  uint8_t y;
+  int8_t x;
+  int8_t y;
+
   uint8_t type;
-  int8_t state;
-  bool player;
   bool active;
 
+  uint8_t state;
+
   void draw() {
+
+    switch (type) {
+      case TOWER_GATLING:
+        arduboy.drawPixel(x, y, BLACK);
+        break;
+
+      case TOWER_CANNON:
+        arduboy.fillRect(x, y, 2, 2, BLACK);
+        break;
+
+      case TOWER_FROST:
+        arduboy.drawCircle(x, y, 1, BLACK);
+        break;
+
+      case TOWER_FLAME:
+        fillChessRect(x - 1, y - 1, 3, 3, BLACK);
+        break;
+
+      case TOWER_RAILGUN:
+       arduboy.drawLine(x, y, x + getDirectionX(state), y + getDirectionY(state), BLACK);      
+        break;
+
+      // uses no projectile
+      case TOWER_LASER:
+      case TOWER_SHOCK:
+      case TOWER_SUPPORT:
+        break;
+
+    }
+
     /*
-      if (type == WEAPON_STDGUN) {
-      arduboy.drawPixel(x, y, BLACK);
-      arduboy.drawPixel(x + 1, y, BLACK);
-
-
-      } else if (type == WEAPON_MG) {
-      arduboy.drawPixel(x, y, BLACK);
-
-      if (player) {
-        arduboy.drawPixel(x + 1, y, BLACK);
-      }
-
       } else if (type == WEAPON_FLAME) {
 
       if (state < 4 * 4) {
         arduboy.fillRect(x, y, 4, 1, BLACK);
 
       } else if (state < 4 * 7) {
-        fillRectChess(x, y - 1, 4, 3, BLACK);
+        fillChessRect(x, y - 1, 4, 3, BLACK);
 
-      }
-      }
     */
   }
 
   void update() {
     int8_t vX, vY;
 
-    /*
-      if (type == WEAPON_STDGUN) {
-      vX = 5;
-      vY = 0;
-
-      } else if (type == WEAPON_ROCKET) {
-      vX = 4;
-      vY = 0;
-
-      } else if (type == WEAPON_LASER) {
-      vX = 10;
-      vY = 0;
-
-      } else if (type == WEAPON_MG) {
-      vX = 4;
-      vY = 0;
-
-      if (state != 0) {
-        if (gameFrames % state == 0) {
-          if (state % 2) {
-            vY = 1;
-          } else {
-            vY = -1;
-          }
-        }
-      }
-
-      } else if (type == WEAPON_FLAME) {
-      vX = 4;
-      vY = 0;
-
-      state += 4;
-
-
-      } else if (type == WEAPON_SMALL_ROCKET) {
-      vX = 2;
-      vY = 0;
-
-      if (state != 0) {
-        // the smaller the value that is divided, the more vertical the ememys shoot
-        if (gameFrames % abs(80 / state) == 0 )
-          vY = state / abs(state);
-      }
-      }
-
-      if (!player) {
-      vX = vX * -1;
-      }
-
-    */
-
-    x += vX;
-    y += vY;
+    // moves projectile depinding on sektor
+    x += getDirectionX(state);
+    y += getDirectionY(state);
   }
 
-  bool touchesPosition(uint8_t p_x, uint8_t p_y, uint8_t p_w, uint8_t p_h, uint8_t tolerance) {
+  bool touchesPosition(uint8_t p_x, uint8_t p_y) {
+    const uint8_t tolerance = 2;
+    
     // target to far left
-    if (p_x + p_w < x + tolerance)
+    if (p_x + 7 < x + tolerance)
       return false;
 
     // target to high up
-    if (p_y + p_h < y + tolerance)
+    if (p_y + 7 < y + tolerance)
       return false;
 
-    // get the height and witdh depending on the type
-    uint8_t h, w;
-
-    h = 1;
-    w = 3;
-
     // target to far right
-    if (x + w < p_x + tolerance)
+    if (x + 7 < p_x + tolerance)
       return false;
 
     // target to far down
-    if (y + h < p_y + tolerance)
+    if (y + 7 < p_y + tolerance)
       return false;
 
     return true;
   }
 
   bool offScreen() {
-    if (x > 127 || y > 63) {
+    if (x < 1 || x > 122 || y > 55) {
       return true;
     } else {
       return false;
@@ -130,7 +93,7 @@ struct projectile {
 };
 
 struct projectileManager {
-  static const uint8_t maximum = 24;
+  static const uint8_t maximum = 40;
   projectile list[maximum];
 
   void init() {
@@ -139,7 +102,7 @@ struct projectileManager {
     }
   }
 
-  void add(uint8_t x, uint8_t y, uint8_t type, int8_t state, bool player) {
+  void add(uint8_t x, uint8_t y, uint8_t type, int8_t state) {
 
     bool foundSlot = false;
     for (uint8_t i = 0; i < maximum; i++) {
@@ -157,7 +120,6 @@ struct projectileManager {
       list[i].y = y;
       list[i].type = type;
       list[i].state = state;
-      list[i].player = player;
       break;
 
     }
@@ -168,7 +130,7 @@ struct projectileManager {
 #endif
   }
 
-  uint8_t isProjectileAt(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t t) {
+  uint8_t isProjectileAt(uint8_t x, uint8_t y) {
 
     for (uint8_t i = 0; i < maximum; i++) {
 
@@ -177,7 +139,7 @@ struct projectileManager {
         continue;
 
       // if active[0].isPosition(..) return index 1, 0 is no item
-      if (list[i].touchesPosition(x, y, w, h, t)) {
+      if (list[i].touchesPosition(x, y)) {
         return i;
       }
     }

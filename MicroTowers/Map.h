@@ -1,7 +1,7 @@
 #ifndef Map_h
 #define Map_h
 
-#define USE_MAP_BUILDING
+#define PRINT_EDITOR_MAP
 
 #ifdef ESP8266
 #define DEBUG_PATH_MAP
@@ -9,14 +9,28 @@
 #endif
 
 enum {
-  MAP_FREE = 0,  
+  MAP_FREE = 0,
   MAP_TOWER,
-  MAP_ROCK,     
-  MAP_NOBUILD, 
+  MAP_ROCK,
+  MAP_NOBUILD,
 };
 
-struct list {
-  static const uint8_t maximum = 12;
+uint8_t getIndex(uint8_t xR, uint8_t yR) {
+  //Serial.println("getIndex xR:" + String(xR) + " yR:" + String(yR) + " is :" + String(xR + yR * ROWS));
+
+  return xR + yR * ROWS;
+}
+
+uint8_t getxR(uint8_t index) {
+  return index % ROWS;
+}
+
+uint8_t getyR(uint8_t index) {
+  return index / ROWS;
+}
+
+struct pathList {
+  static const uint8_t maximum = 20;
   uint8_t len = 0;
   uint8_t data[maximum];
 
@@ -34,63 +48,105 @@ struct list {
 
 struct mapMangager {
 
-  uint8_t getIndex(uint8_t xR, uint8_t yR) {
-    return xR + yR * ROWS;
+  int8_t pixelsToRasterX(int8_t x) {
+    return (x - RASTER_OFFSET_X) / RASTER;
+
   }
 
-  int8_t getXR(int8_t x) {
-    if (x <= RASTER_OFFSET_X) {
-      return -1;
+  int8_t pixelsToRasterY(int8_t y) {
+    return (y - RASTER_OFFSET_Y) / RASTER;
+  }
+
+  uint8_t getShifts(uint8_t node) {
+    // depending on position in array it must be shiftes 2, 4 or 6 times
+    return (3 - (node % 4)) * 2;
+  }
+
+  uint8_t getShiftedData(uint8_t node, uint8_t data) {
+    // put data to the correct position in byte
+    return data << getShifts(node);
+  }
+
+  uint8_t getCurrentMapNode(uint8_t node) {
+
+    // because there are 4 byte in every pgm space map byte
+    uint8_t index = node / 4;
+
+    // get data from currently loaded map
+    uint8_t rawData = mapComposition[index];
+
+    uint8_t shifts = getShifts(node);
+
+    // shift data to get the correct two bits
+    return (rawData & (0b00000011 << shifts)) >> shifts;
+  }
+
+  uint8_t getCurrentMapNode(uint8_t xR, uint8_t yR) {
+    return getCurrentMapNode(getIndex(xR, yR));
+  }
+
+  uint8_t getStoredMapNode(uint8_t node, int8_t mapNumber) {
+
+    // because there are 4 byte in every pgm space map byte
+    uint8_t index = node / 4;
+
+    // read data for 4 bytes, from eeprom or program space
+    uint8_t rawData;
+    if (mapNumber == 0) {
+      // read from global map array because map 0 was copied here from eeprom
+      rawData = mapComposition[index];
+
     } else {
-      return (x - RASTER_OFFSET_X) / RASTER;
+      rawData = pgm_read_byte(allMaps + index + mapNumber * NODES_COMPRESSED);
     }
+
+    uint8_t shifts = getShifts(node);
+
+    // shift data to get the correct two bits
+    return (rawData & (0b00000011 << shifts)) >> shifts;
   }
 
-  int8_t getYR(int8_t y) {
-    if (y <= RASTER_OFFSET_Y) {
-      return -1;
-    } else {
-      return (y - RASTER_OFFSET_Y) / RASTER;
-    }
+  void setNode(uint8_t node, uint8_t data) {
+
+    // holds the index
+    uint8_t index = node / 4;
+
+    //Serial.println("setNode " + String(node) + " data: " + String(data));
+
+    // clear the 2 bits of this byte
+    mapComposition[index] &= ~(0b00000011 << getShifts(node));
+
+    // write only the 2 new bits
+    mapComposition[index] |= getShiftedData(node, data);
   }
 
-  void setNode(uint8_t index, uint8_t type) {
-    //Serial.println("setNode at xR: " + String(xR) + " yR: " + String(yR) + " type: " + String(type));
-    
-    mapComposition[index] = type;
-  }
-  
   void setNode(uint8_t xR, uint8_t yR, uint8_t type) {
 
     setNode(getIndex(xR, yR), type);
   }
 
-  uint8_t getNode(uint8_t index) {
-    return mapComposition[index];
-  }
-
-  uint8_t getNode(uint8_t xR, uint8_t yR) {
-    return getNode(getIndex(xR, yR));
-  }
-
-  void placeTower(uint8_t xR, uint8_t yR) {
-    //Serial.println("placeTower");
+  void set2x2Nodes(uint8_t towerIndex, uint8_t type) {
+    //Serial.println("set2x2Nodes");
 
     // one tower uses 4 nodes
-    setNode(xR,     yR,     MAP_TOWER);
-    setNode(xR,     yR + 1, MAP_TOWER);
-    setNode(xR + 1, yR,     MAP_TOWER);
-    setNode(xR + 1, yR + 1, MAP_TOWER);
+    setNode(towerIndex,            type);
+    setNode(towerIndex + 1,        type);
+    setNode(towerIndex + ROWS,     type);
+    setNode(towerIndex + ROWS + 1, type);
 
     // to trigger new pathfinding
     mapChanged = true;
+  }
+
+  void set2x2Nodes(uint8_t xR, uint8_t yR, uint8_t type) {
+    set2x2Nodes(getIndex(xR, yR), type);
   }
 
 #ifdef DEBUG_PATH_MAP
   void printMap() {
     Serial.println("Map:");
 
-    Serial.print("    ");
+    Serial.print("      ");
     for (uint8_t j = 0; j < ROWS; j++) {
       Serial.printf(" %02d ", j);
     }
@@ -99,23 +155,29 @@ struct mapMangager {
     Serial.println();
 
     for (uint8_t i = 0; i < COLUMNS; i++) {
-      Serial.printf("%02d |", i);
+
+      Serial.printf("%02d", i);
+      if (i == 4) {
+        Serial.print("    ");
+      } else {
+        Serial.print(" |  ");
+      }
 
       for (uint8_t j = 0; j < ROWS; j++) {
         uint8_t index = getIndex(j, i);
 
-        switch (mapComposition[index]) {
+        switch (getCurrentMapNode(index)) {
 
           case MAP_FREE:
-            if (mapCosts[index] != 0xff) {
-              Serial.printf(" %02d ", mapCosts[index]);
-            } else {
-              Serial.print("    ");
-            }
+            Serial.printf(" %02d ", mapCosts[index]);
             break;
 
           case MAP_TOWER:
-            Serial.print("[To]");
+            if (index == headquarterPosition) {
+              Serial.print("[HQ]");
+            } else {
+              Serial.print("[To]");
+            }
             break;
 
           case MAP_ROCK:
@@ -134,16 +196,20 @@ struct mapMangager {
   }
 #endif
 
+  uint8_t getCurrentCost(int8_t x, int8_t y) {
+    return getRasterCost(pixelsToRasterX(x), pixelsToRasterY(y));
+  }
+
   uint8_t getDirection(int8_t x, int8_t y) {
 
-    // if they are not even in they map it is simple
+    // if they are not even in the map it is simple
     if (x < 2)
       return GO_RIGHT;
 
-    int8_t xR = getXR(x);
-    int8_t yR = getXR(y);
+    int8_t xR = pixelsToRasterX(x);
+    int8_t yR = pixelsToRasterY(y);
 
-    uint8_t currentCost = getCost(xR, yR);
+    uint8_t currentCost = getRasterCost(xR, yR);
 
     //Serial.print("STEP: xR:" + String(xR) + " yR:" + String(yR));
     //Serial.println(" x:" + String(x) + " y:" + String(y) + " currentCost:" + String(currentCost));
@@ -154,20 +220,20 @@ struct mapMangager {
       if (i % 2) {
 
         // check up
-        if (getCost(xR, yR - 1) < currentCost)
+        if (getRasterCost(xR, yR - 1) < currentCost)
           return GO_UP;
 
         // check down
-        if (getCost(xR, yR + 1) < currentCost)
+        if (getRasterCost(xR, yR + 1) < currentCost)
           return GO_DOWN;
 
       } else {
         // check right
-        if (getCost(xR + 1, yR) < currentCost)
+        if (getRasterCost(xR + 1, yR) < currentCost)
           return GO_RIGHT;
 
         // check left
-        if (getCost(xR - 1, yR) < currentCost)
+        if (getRasterCost(xR - 1, yR) < currentCost)
           return GO_LEFT;
       }
     }
@@ -175,7 +241,7 @@ struct mapMangager {
     return NO_DIRECTION;
   }
 
-  uint8_t getCost(uint8_t xR, uint8_t yR) {
+  uint8_t getRasterCost(uint8_t xR, uint8_t yR) {
 
     // these ifs avoid the enemys leaving the grip
     if (xR < 0 || xR >= ROWS)
@@ -196,13 +262,12 @@ struct mapMangager {
 
         uint8_t index = getIndex(xR, yR);
 
-        switch (mapComposition[index]) {
+        switch (getCurrentMapNode(index)) {
 
           case MAP_FREE:
             break;
 
           case MAP_TOWER:
-
             if (index == headquarterPosition) {
               drawBitmapFast(xPos + 1, yPos - 1, editorSymbole, 5, EDITOR_HQ, false);
             }
@@ -220,7 +285,7 @@ struct mapMangager {
     }
   }
 
-  void checkNeighbour(list &lNext, bool *lClosed, int16_t i) {
+  void checkNeighbour(pathList &lNext, bool *lClosed, int16_t i) {
     // only valid nodes
     if (i < 0 || i >= NODES)
       return;
@@ -228,62 +293,22 @@ struct mapMangager {
     if (lClosed[i] == true)
       return;
 
-    if (mapComposition[i] == MAP_ROCK || mapComposition[i] == MAP_TOWER)
+    uint8_t tmpData = getCurrentMapNode(i);
+
+    if (tmpData == MAP_ROCK || tmpData == MAP_TOWER)
       return;
 
 #ifdef DEBUG_PATH_PRINT
     Serial.println(" found neighbour:" + String(i));
+    yield();
 #endif
     lNext.add(i);
-  }
-
-  void createMap() {
-
-    setNode(4, 0, MAP_ROCK);
-
-    setNode(10, 1, MAP_ROCK);
-    setNode(10, 2, MAP_ROCK);
-    setNode(10, 3, MAP_ROCK);
-    setNode(10, 4, MAP_ROCK);
-    setNode(10, 5, MAP_ROCK);
-    setNode(10, 6, MAP_ROCK);
-    setNode(10, 7, MAP_ROCK);
-    setNode(10, 8, MAP_ROCK);
-
-    setNode(7, 6, MAP_NOBUILD);
-    setNode(7, 7, MAP_NOBUILD);
-    setNode(8, 7, MAP_NOBUILD);
-    setNode(6, 6, MAP_NOBUILD);
-    setNode(6, 7, MAP_NOBUILD);
-    setNode(6, 8, MAP_NOBUILD);
-    setNode(5, 6, MAP_NOBUILD);
-    setNode(5, 7, MAP_NOBUILD);
-    setNode(5, 8, MAP_NOBUILD);
-    setNode(4, 6, MAP_NOBUILD);
-    setNode(4, 7, MAP_NOBUILD);
-    setNode(4, 8, MAP_NOBUILD);
-
-    setNode(15, 2, MAP_ROCK);
-    setNode(15, 3, MAP_ROCK);
-    setNode(15, 4, MAP_ROCK);
-    setNode(15, 5, MAP_ROCK);
-
-    setNode(12, 7, MAP_ROCK);
-    setNode(13, 7, MAP_ROCK);
-
-    setNode(18, 1, MAP_TOWER);
   }
 
   void drawMapPreview(uint8_t xOffset, int16_t yOffset, uint8_t mapNumber) {
 
     // draw frame around minimap
     arduboy.drawRect(xOffset, yOffset, 2 * ROWS + 2, 2 * COLUMNS + 2, BLACK);
-
-  /*
-      drawBitmapSlow(5, 5, mapLocked, 8, 11, 0, 0, BLACK);
-      
-      arduboy.drawBitmap(15, 5, mapLocked, 8, 11, BLACK);
-  */
 
     // check is this map is still locked
     if (mapNumber >= unlockedMaps) {
@@ -294,7 +319,7 @@ struct mapMangager {
       drawBitmapSlow(xOffset + 17, yOffset + 6, mapLocked, 8, 11, 0, 0, WHITE);
       //arduboy.drawBitmap(xOffset + 17, yOffset + 6, mapLocked, 8, 11, WHITE);
       return;
-    } 
+    }
 
     // open the frame on the left side
     arduboy.drawLine(xOffset, yOffset + 9, xOffset, yOffset + 11, WHITE);
@@ -305,14 +330,16 @@ struct mapMangager {
       for (uint8_t xR = 0; xR < ROWS; xR++) {
         uint8_t xPos = 1 + xOffset + xR * 2;
 
-        uint16_t data = getMapNode(getIndex(xR, yR), mapNumber);
+        uint8_t index = getIndex(xR, yR);
+
+        uint16_t data = getStoredMapNode(index, mapNumber);
 
         switch (data) {
           case MAP_FREE:
             break;
 
           case MAP_TOWER:
-            // this headquarter is too big for the 4 pixels per node, so it can be covered a bit
+            // this headquarter is too big for the 4 pixels per node, so it can be covered a bit          
             arduboy.drawRoundRect(xPos - 1, yPos - 1, 4, 4, 1, BLACK);
             break;
 
@@ -329,98 +356,16 @@ struct mapMangager {
     }
   }
 
-  uint16_t getMapNode(uint8_t node, uint8_t mapNumber) {
-
-    // because there are 4 byte in every pgm space map byte
-    uint8_t index = node / 4;
-
-    // data for 4 bytes
-    uint8_t rawData = pgm_read_byte(allMaps + index + mapNumber * 45);
-
-    // must be shiftes 2, 4 or 6 times
-    uint8_t shifts = (3 - (node % 4)) * 2;
-
-    // shift data to get the correct two bits
-    return (rawData & (0b00000011 << shifts)) >> shifts;
-  }
-
-  void loadMap(uint8_t mapNumber) {
-
-    for (uint8_t n = 0; n < NODES; n++) {
-
-      uint8_t data = getMapNode(n, mapNumber);
-
-      // save position of headquarter
-      if (data == MAP_TOWER) {
-        Serial.println("headquarter is:" + String(n));
-        headquarterPosition = n;
-      }
-      // write to the current map array
-      mapComposition[n] = data;
-    }
-  }
-
-#ifdef USE_MAP_BUILDING
-  void generateMapArray() {
-
-    // i use only 2 bits per map node
-    const uint8_t COMPRESSED_NODES = NODES / 4;
-
-    // create temporary array
-    uint8_t mapData[COMPRESSED_NODES];
-
-    for (uint8_t n = 0; n < NODES; n++) {
-
-      // holds the index
-      uint8_t index = n / 4;
-
-      // shift data 2 bits left if it is no new byte
-      if ((n % 4) != 0) {
-        // get the current data of this byte
-        uint8_t tmpData = mapData[index];
-
-        // write it left shifted back
-        mapData[index] = tmpData << 2;
-
-      } else {
-
-        // clear the byte before writing stuff
-        mapData[index] = 0;
-      }
-
-      // add current note to byte
-      mapData[index] |= mapComposition[n];
-    }
-
-    Serial.println("Generated following map bytes:");
-
-    for (uint8_t n = 0; n < COMPRESSED_NODES; n++) {
-
-      Serial.print("0x");
-
-      if (mapData[n] <= 0xf)
-        Serial.print("0");
-
-      Serial.print(mapData[n], HEX);
-      Serial.print(", ");
-
-      if ((n + 1) % 16 == 0)
-        Serial.println();
-    }
-
-    Serial.println();
-  }
-#endif
-
   bool findPath() {
 
     // reset this bool to find new path only once
     mapChanged = false;
 
     // they do not need to be global!
-    list openList;
-    list nextList;
+    pathList openList;
+    pathList nextList;
 
+    // TODO: find a bette way to solve this!!!!!!1
     bool closedList[NODES];
 
 #ifdef DEBUG_PATH_MAP
@@ -465,7 +410,7 @@ struct mapMangager {
       }
 
       // add new neightbours to openList
-      memcpy(&openList, &nextList, sizeof(list));
+      memcpy(&openList, &nextList, sizeof(pathList));
 
       if (openList.len == 0) {
 
@@ -492,6 +437,45 @@ struct mapMangager {
     // did not find a path
     return false;
   }
+
+  /*
+    void createMap() {
+
+    setNode(4, 0, MAP_ROCK);
+
+    setNode(10, 1, MAP_ROCK);
+    setNode(10, 2, MAP_ROCK);
+    setNode(10, 3, MAP_ROCK);
+    setNode(10, 4, MAP_ROCK);
+    setNode(10, 5, MAP_ROCK);
+    setNode(10, 6, MAP_ROCK);
+    setNode(10, 7, MAP_ROCK);
+    setNode(10, 8, MAP_ROCK);
+
+    setNode(7, 6, MAP_NOBUILD);
+    setNode(7, 7, MAP_NOBUILD);
+    setNode(8, 7, MAP_NOBUILD);
+    setNode(6, 6, MAP_NOBUILD);
+    setNode(6, 7, MAP_NOBUILD);
+    setNode(6, 8, MAP_NOBUILD);
+    setNode(5, 6, MAP_NOBUILD);
+    setNode(5, 7, MAP_NOBUILD);
+    setNode(5, 8, MAP_NOBUILD);
+    setNode(4, 6, MAP_NOBUILD);
+    setNode(4, 7, MAP_NOBUILD);
+    setNode(4, 8, MAP_NOBUILD);
+
+    setNode(15, 2, MAP_ROCK);
+    setNode(15, 3, MAP_ROCK);
+    setNode(15, 4, MAP_ROCK);
+    setNode(15, 5, MAP_ROCK);
+
+    setNode(12, 7, MAP_ROCK);
+    setNode(13, 7, MAP_ROCK);
+
+    setNode(18, 1, MAP_TOWER);
+    }
+  */
 };
 
 #endif
