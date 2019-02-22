@@ -2,42 +2,67 @@
 #define Gameplay_h
 
 void tryToBuildTower() {
+  // get the needed money
+  uint8_t price = getProgMem(towerPrices, indexBuildMenu);
+
+
+  // check if tower blocks path
+
+
+  // return because player has to less money
+  if (currentCoins < price)
+    return;
+
+  // buy the upgrade
+  currentCoins -= price;
+
   // put tower to map
   tM.add(xCursor, yCursor, indexBuildMenu);
-
-  // money stuff
 
   // if tower was placed return to playing mode
   gameMode = MODE_PLAYING;
 }
 
-void upgradeTower() {
+void tryToUpgradeTower() {
   // get the tower where the cursor is
   uint8_t index = tM.getTowerAt(xCursor, yCursor);
-
-  //Serial.println("upgradeTower " + String(index));
-
-  uint8_t currentLevel = tM.list[index].lev;
+  uint8_t currentLevel = tM.list[index].getLevel();
 
   if (currentLevel == TOWER_LEVEL_MAX)
     return;
 
   // get the needed money
+  uint8_t price = getProgMem(towerPrices, tM.list[index].getType());
 
-  // set to next level
-  tM.list[index].lev = currentLevel + 1;
+  // return because player has to less money
+  if (currentCoins < price)
+    return;
+
+  // buy the upgrade
+  currentCoins -= price;
+
+  // write incremented level back
+  tM.list[index].setLevel(currentLevel + 1);
+
+  // if update was done return to game
+  gameMode = MODE_PLAYING;
 }
 
 void sellTower() {
   // get the tower where the cursor is
   uint8_t index = tM.getTowerAt(xCursor, yCursor);
 
-  //Serial.println("sellTower " + String(index));
+  // get worth of the tower
+  uint8_t price = getProgMem(towerPrices, tM.list[index].getType());
 
-  // get the money from this tower
+  // give half of the buying und upgrading price back
+  currentCoins += (price * (tM.list[index].getLevel() + 1)) / 2;
 
   // delete this tower
   tM.sell(index);
+
+  // if tower was placed return to playing mode
+  gameMode = MODE_PLAYING;
 }
 
 void loadMap(uint8_t mapNumber) {
@@ -72,7 +97,7 @@ void checkHits() {
   for (uint8_t i = 0; i < eM.maximum; i++) {
 
     // check only active enemys
-    if (eM.list[i].active == false)
+    if (eM.isEnemyActive(i))
       continue;
 
     uint8_t projIndex = pM.isProjectileAt(eM.list[i].x, eM.list[i].y);
@@ -82,7 +107,7 @@ void checkHits() {
       continue;
 
     uint8_t enemyType = eM.list[i].type;
-    uint8_t projectileType = pM.list[projIndex].type;
+    uint8_t projectileType = pM.list[projIndex].getType();
 
     uint8_t projectileDmg = 2;
     /*
@@ -94,11 +119,18 @@ void checkHits() {
     */
 
     // do the damage and decide if it dies
-    bool isEnemyDead = eM.list[i].damage(projectileDmg);
+    bool isEnemyDead = eM.list[i].damage(projectileDmg, projectileType);
 
     //aM.add(impactPosX, pM.list[projIndex].y, ANIMATION_IMPACT_L, 0);
 
-    pM.list[projIndex].active = false;
+    // railgun projectiles fly trough the whole map, flames destroy themself
+    if (projectileType == TOWER_FLAME || projectileType == TOWER_RAILGUN)
+      return;
+      
+    // set flag to destroy this projectile later
+    // if (projectileType == TOWER_CANON)   
+
+    pM.clearProjectile(projIndex);
   }
 }
 

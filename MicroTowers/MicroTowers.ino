@@ -22,7 +22,7 @@
 
 #include "Globals.h"
 #include "Sprites.h"
-#include "Draw.h"
+#include "Help.h"
 
 #include "Font.h"
 myFont mF;
@@ -95,6 +95,9 @@ void loop() {
   arduboy.pollButtons();
   arduboy.fillScreen(WHITE);
 
+  // calculate this once and store is global
+  isFramesMod2 = gameFrames % 2;
+
   checkButtons();
 
   drawMenus();
@@ -105,7 +108,9 @@ void loop() {
   //mF.print(String(micros() - start));
 
   mF.setCursor(2, 0);
-  mF.print(gameMode);
+  //mF.print(gameMode);
+
+  mF.print(pM.count());
 #endif
 
   arduboy.display();

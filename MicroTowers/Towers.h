@@ -1,21 +1,67 @@
 #ifndef Towers_h
 #define Towers_h
 
+#define BIT_TOWER_ACTIVE    7
+#define BIT_TOWER_RELOADED  6
+
 struct tower {
   // location on the map
   uint8_t index;
 
-  // maybe combine those two like typeSektor
-  uint8_t type;
-  uint8_t sektor = 8;
+  // highNibble: type, lowNibble: sektor
+  uint8_t typeSektor;
 
-  // combine
-  bool active;
-  uint8_t range = 20;
+  // highestBit: active, lowNibble: range
+  uint8_t activeRange;
 
-  // combine
-  uint8_t lev = 0;
-  uint8_t state = 0;
+  // highNibble: level, lowNibble: state
+  uint8_t levelState;
+
+  // getters
+  uint8_t getType() {
+    return getHighNibble(typeSektor);
+  }
+
+  uint8_t getSektor() {
+    return getLowNibble(typeSektor);
+  }
+
+  uint8_t getRange() {
+    return getLowNibble(activeRange) * 2;
+
+    // no need for nibble
+    
+  }
+
+  uint8_t getLevel() {
+    return getHighNibble(levelState);
+  }
+
+  uint8_t getState() {
+    return getLowNibble(levelState);
+  }
+
+  // setters
+  void setType(uint8_t value) {
+    setHighNibble(typeSektor, value);
+  }
+
+  void setSektor(uint8_t value) {
+    setLowNibble(typeSektor, value);
+  }
+
+  void setRange(uint8_t value) {
+    setLowNibble(activeRange, value / 2);
+  }
+
+  void setLevel(uint8_t value) {
+    setHighNibble(levelState, value);
+  }
+
+  void setState(uint8_t value) {
+    setLowNibble(levelState, value);
+  }
+
 
   uint8_t getX() {
     return getxR(index) * RASTER + RASTER_OFFSET_X + 1;
@@ -40,23 +86,24 @@ struct tower {
 
     for (uint8_t i = 0; i < eM.maximum; i++) {
       // check only active enemys
-      if (eM.list[i].active == false)
+      if (eM.isEnemyActive(i) == false)
         continue;
 
       //Serial.println("Found enemy" + String(i));
 
       // only if the enemy is in Range
-      if (!eM.list[i].isInRange(getCenterX(), getCenterY(), range))
+      if (!eM.list[i].isInRange(getCenterX(), getCenterY(), getRange()))
         continue;
 
       // called by the shock towers to do damage to lots of enemys
       if (isShockTower) {
-        //
-        if (gameFrames % 2)
-          arduboy.drawLine(getCenterX(), getCenterY(), eM.list[i].getCenterX(), eM.list[i].getCenterY(), BLACK);
+
+        // just for debugging
+        //if (isFramesMod2)
+        //  arduboy.drawLine(getCenterX(), getCenterY(), eM.list[i].getCenterX(), eM.list[i].getCenterY(), BLACK);
 
         // TODO:
-        eM.list[i].damage(0);
+        eM.list[i].damage(1, TOWER_SHOCK);
       }
 
       // set new target if enemy has more map progress
@@ -101,7 +148,7 @@ struct tower {
     }
   }
 
-  int8_t getSektor(int8_t x, int8_t y) {
+  int8_t calculateSektor(int8_t x, int8_t y) {
 
     // multiply by 100 to aviod float and add offset 11.25°
     uint16_t deg = getDegree(x, y) * 100 + 1125;
@@ -117,12 +164,38 @@ struct tower {
   }
 
   void update() {
+
+    // get the type of this tower
+    uint8_t type = getType();
+
+    // support tower is only doing something when map changed
+    if (type == TOWER_SUPPORT)
+      return;
+
     // look for a target
     int8_t target = getTarget(false);
 
-    // reload weapon
-    if (state > 0)
-      state--;
+    // reload weapon but only every second frame
+    uint8_t state = getState();
+    if (isFramesMod2) {
+
+      // decrement because 0 means is loaded
+      if (state > 0)
+        state--;
+
+      
+          // this is only relevant for the shock and laser tower
+          if (type == TOWER_SHOCK /* || type == TOWER_LASER*/) {
+            Serial.println("state: " + String(state));
+          }
+      
+
+      // this is only relevant for the shock and laser tower
+      if (state == 0 && (type == TOWER_SHOCK /*|| type == TOWER_LASER*/)) {
+        bitSet(activeRange, BIT_TOWER_RELOADED);
+        Serial.println("tower is reloaded");
+      }
+    }
 
     // there is nothing to do if no enemy is near
     if (target == -1)
@@ -134,80 +207,139 @@ struct tower {
     int8_t xTarget = eM.list[target].getCenterX();
     int8_t yTarget = eM.list[target].getCenterY();
 
-    // get the sektor of the prefered target, y-axis is inversed on the display!
-    int8_t targetSektor = getSektor(xTarget - xCenter, yCenter - yTarget);
+    // do the rotation
+    int8_t istSektor = getSektor();
+    if (isRotatingTower(type)) {
 
-    int8_t istSektor = sektor;
+      // get the sektor of the prefered target, y-axis is inversed on the display!
+      int8_t targetSektor = calculateSektor(xTarget - xCenter, yCenter - yTarget);
 
-    // check if rotation is necassary
-    if (istSektor != targetSektor) {
+      // check if rotation is necassary
+      if (istSektor != targetSektor) {
 
-      // turn the fastest way
-      if (isClockwiseShorter(istSektor, targetSektor)) {
-        istSektor--;
-      } else {
-        istSektor++;
+        // turn the fastest way
+        if (isClockwiseShorter(istSektor, targetSektor)) {
+          istSektor--;
+        } else {
+          istSektor++;
+        }
+
+        // write rotation back
+        setSektor((istSektor + 16) % 16);
+
+        // do nothing if tower is still in wrong direction
+        if (istSektor != targetSektor)
+          return;
       }
-
-      // write rotation back
-      sektor = (istSektor + 16) % 16;
     }
 
-    // get positon where to bullet starts
-    int8_t xStart = xCenter + getDirectionX(sektor);
-    int8_t yStart = yCenter + getDirectionY(sektor);
+    // get positon where the bullet starts
+    int8_t xStart = xCenter + getDirectionX(istSektor);
+    int8_t yStart = yCenter + getDirectionY(istSektor);
 
+    // every projectile has the sektor on its 4 low bits
+    uint8_t projState = istSektor;
 
-    if (type == TOWER_SUPPORT) {
-      return;
+    // get the level for different weapon stuff
+    uint8_t lvl = getLevel();
 
-    } else if (type == TOWER_LASER) {
+    // does direct damage to one enemy
+    if (type == TOWER_LASER) {
 
       // do laser dmg
-      eM.list[target].damage(2);
+      eM.list[target].damage(1, TOWER_LASER);
 
-      if (gameFrames % 2)
+      if (isFramesMod2)
         arduboy.drawLine(xStart, yStart, xTarget, yTarget, BLACK);
 
       return;
 
-    } else if (type == TOWER_SHOCK) {
+      // does direct damage to any enemy in range
+    } else if (type == TOWER_SHOCK && getBit(activeRange, BIT_TOWER_RELOADED)) {
 
-      // do shock dmg
+      // add 2 because there was minus 1 on top of this function
+      if (isFramesMod2) {
+
+        if (state < 14 /*5 + lvl * 3*/) {
+          setState(state + 2);
+
+        } else {
+          // start reloading time
+          bitClear(activeRange, BIT_TOWER_RELOADED);
+
+          Serial.println("tower needs to reload");
+        }
+      }
+
+      // do shock dmg in this function call
       getTarget(true);
 
-      arduboy.drawCircle(xCenter, yCenter, 10 + gameFrames % 3, BLACK);
+      // draw the shock wave
+      arduboy.drawCircle(xCenter, yCenter, getRange() - gameFrames % 3, BLACK);
+
+      return;
+
+      // does direct damage to any enemy in range
+    } else if (type == TOWER_FLAME) {
+
+      // put the current tower level into the high byte of projectile for flame range
+      setHighNibble(projState, lvl + 5);
     }
+
+    // write the current state in nibble varialbe for next call
+    setState(state);
 
     // weapon can only shoot if loaded
     if (state != 0)
       return;
 
-    uint8_t reloadTime = 8;
+    // the state nibble can only count form 0-15 so do it every second frame to get reload timings of 32 is more than a second
+    if (isFramesMod2) {
+      
+      uint8_t reloadTime;
+      if (type == TOWER_FLAME) {
+        // flame tower is always shoot with max speed
+        reloadTime = 1;
 
-    state += reloadTime;
+      } else {
+        // get tower specific reload time
+        reloadTime = getProgMem(towerReloadTimes, type);
+
+        // reduce depending on current level
+        reloadTime -= lvl;
+      }
+
+      // set reload variable
+      setState(reloadTime);
+    }
 
     // shoot the bullet
-    pM.add(xStart, yStart, type, sektor);
+    pM.add(xStart, yStart, type, projState);
   }
 
   void draw() {
+    // get a few variables
     uint8_t x = getX();
     uint8_t y = getY();
+    uint8_t lvl = getLevel();
+    uint8_t type = getType();
 
     // draw socket depending on level
-    drawTowerSocket(x, y, lev);
+    drawTowerSocket(x, y, lvl);
 
     // draw the range of this tower
     if (false)
-      arduboy.drawCircle(getCenterX(), getCenterY(), range, BLACK);
+      arduboy.drawCircle(getCenterX(), getCenterY(), getRange(), BLACK);
 
-    if (type <= TOWER_LASER) {
+    if (isRotatingTower(type)) {
 
-      // todo draw those towers fast
+      // TODO: draw 1/4 of those towers fast
+
+      // get sektor
+      uint8_t sektor = getSektor();
 
       // set offset for correct level and fine rotation
-      uint8_t offset = lev % 4 + (sektor % 4) * 4;
+      uint8_t offset = lvl % 4 + (sektor % 4) * 4;
 
       // set tower offset
       offset += type * 16;
@@ -223,7 +355,7 @@ struct tower {
 
     } else {
       // offset is a huge value, because the five other towers are on top
-      uint8_t offset = lev % 4 + (type - TOWER_SHOCK) * 4 + 16 * 6;
+      uint8_t offset = lvl % 4 + (type - TOWER_SHOCK) * 4 + 16 * 6;
 
       // can be drawn fast
       drawBitmapFast(x + 2, y + 2, allTowers, 7, offset, false);
@@ -232,13 +364,25 @@ struct tower {
 };
 
 struct towerManager {
-  static const uint8_t maximum = 10;
+  static const uint8_t maximum = 20;
   tower list[maximum];
+
+  void clearTower(uint8_t towerIndex) {
+    bitClear(list[towerIndex].activeRange, BIT_TOWER_ACTIVE);
+  }
+
+  void setTowerActive(uint8_t towerIndex) {
+    bitSet(list[towerIndex].activeRange, BIT_TOWER_ACTIVE);
+  }
+
+  bool isTowerActive(uint8_t towerIndex) {
+    return getBit(list[towerIndex].activeRange, BIT_TOWER_ACTIVE);
+  }
 
   void sell(uint8_t towerIndex) {
 
     // delete this tower
-    list[towerIndex].active = false;
+    clearTower(towerIndex);
 
     uint8_t mapIndex = list[towerIndex].index;
 
@@ -248,7 +392,7 @@ struct towerManager {
 
   void init() {
     for (uint8_t i = 0; i < maximum; i++) {
-      list[i].active = false;
+      clearTower(i);
     }
   }
 
@@ -260,7 +404,7 @@ struct towerManager {
 
     for (uint8_t i = 0; i < maximum; i++) {
 
-      if (list[i].active == false)
+      if (isTowerActive(i) == false)
         continue;
 
       if (list[i].index == mapIndex)
@@ -276,10 +420,10 @@ struct towerManager {
     bool foundSlot = false;
     for (uint8_t i = 0; i < maximum; i++) {
 
-      if (list[i].active == true)
+      if (isTowerActive(i))
         continue;
 
-      list[i].active = true;
+      setTowerActive(i);
       foundSlot = true;
 
       uint8_t towerIndex = getIndex(xR, yR);
@@ -291,8 +435,12 @@ struct towerManager {
 
       // set values
       list[i].index = towerIndex;
+      list[i].levelState = 0;
+      list[i].setType(type);
 
-      list[i].type = type;
+      list[i].setRange(20);
+
+      // break after finding a vaild slot to add only one tower
       break;
     }
 
@@ -305,8 +453,9 @@ struct towerManager {
   void update() {
 
     for (uint8_t i = 0; i < maximum; i++) {
+
       // only active
-      if (list[i].active == false)
+      if (isTowerActive(i) == false)
         continue;
 
       list[i].update();

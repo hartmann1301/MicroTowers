@@ -1,11 +1,24 @@
 #ifndef Enemys_h
 #define Enemys_h
 
-#define STATE_DEAD     250
-#define STATE_SPAWN    255
+//#define DEGUG_DMG_ENEMYS
 
-#define BIT_IS_ACTIVE   6 // !!!!!!
-#define BIT_LOOKS_LEFT  7
+#define BIT_ENEMY_ACTIVE  6
+#define BIT_LOOKS_LEFT    7
+
+enum {
+  ENEMY_TYPE_CYBORG = 0,
+  ENEMY_TYPE_TWOPOD,
+  ENEMY_TYPE_MONSTER
+};
+
+enum {
+  ENEMY_IS_DEFAULT = 0,
+  ENEMY_IS_FAST,
+  ENEMY_RESITS_BULLETS,
+  ENEMY_RESITS_LASERS,
+  ENEMY_RESITS_AOES
+};
 
 enum {
   ANIMAL_RAT,
@@ -29,17 +42,36 @@ struct enemy {
   int8_t x;
   int8_t y;
 
+  // here is one nibble free!
   uint8_t type;
-  uint8_t state = 0;
 
+  // highNibble: frozen, lowNibble: state
+  uint8_t frozenState;
+
+  // this needs to be 16 bits for a good accuracy of all the weapons
   uint16_t health;
 
   // first 3 * 2 bits are directions, than is active and looks left boolean
   uint8_t pathStorage = 0;
-  bool active = false;
 
   // stores the cost value, the smaller it is the nearer is the hq
   uint8_t mapCosts;
+
+  uint8_t getState() {
+    return getLowNibble(frozenState);
+  }
+
+  uint8_t getFrozen() {
+    return getHighNibble(frozenState);
+  }
+
+  void setState(uint8_t value) {
+    setLowNibble(frozenState, value);
+  }
+
+  void setFrozen(uint8_t value) {
+    setHighNibble(frozenState, value);
+  }
 
   uint8_t getCenterX() {
     return x + 2;
@@ -52,7 +84,7 @@ struct enemy {
   void saveDirection(uint8_t dir) {
 
     // calc shifts for the current slot
-    uint8_t shifts = (state % 3) * 2;
+    uint8_t shifts = (getState() % 3) * 2;
 
     //Serial.println("Save: " + String(dir) + " with shifts:" + String(shifts));
 
@@ -69,7 +101,7 @@ struct enemy {
   uint8_t getSavedDirection() {
 
     // calc shifts for the current slot
-    uint8_t shifts = (state % 3) * 2;
+    uint8_t shifts = (getState() % 3) * 2;
 
     // get the two direction bits
     uint8_t tmp = pathStorage & (0b00000011 << shifts);
@@ -82,8 +114,19 @@ struct enemy {
 
   void update() {
 
-    if (gameFrames % 2 != 0)
+    if (isFramesMod2 && type != ENEMY_IS_FAST)
       return;
+
+    // do not walk if enemy is frozen
+    uint8_t currentFrozen = getFrozen();
+    if (currentFrozen > 0) {
+      setFrozen(currentFrozen - 1);
+
+      return;
+    }
+
+    // get the state for walking
+    uint8_t state = getState();
 
     uint8_t dir;
     if (state  < 3) {
@@ -120,10 +163,10 @@ struct enemy {
 
     // increment state from 0-5
     if (state == 5) {
-      state = 0;
+      setState(0);
 
     } else {
-      state++;
+      setState(state + 1);
     }
 
     // actual movement of the enemy
@@ -147,49 +190,74 @@ struct enemy {
     }
   }
 
-  bool damage(uint8_t dmg) {
+  bool damage(uint16_t dmg, uint8_t dmgType) {
+
+    // freeze the enemys if type was frost tower
+    if (dmgType == TOWER_FROST) {
+      uint8_t currentFrozen = getFrozen();
+
+      if (currentFrozen < 14)
+        setFrozen(currentFrozen + 2);
+    }
+
+    if (dmg == 0)
+      return false;
 
 #ifdef DEGUG_DMG_ENEMYS
     Serial.print("Enemy got DMG:");
     Serial.print(dmg, DEC);
 #endif
 
-    if (dmg == 0)
-      return false;
-
-    uint16_t tmpDmg = dmg * 100;
-
-    // reduce the damage because of map progress
-    uint16_t reducePercent = 5;
-
 #ifdef DEGUG_DMG_ENEMYS
-    Serial.print(" -%:");
-    Serial.print(reducePercent, DEC);
+    Serial.print(" health is: ");
+    Serial.print(health, DEC);
 #endif
 
-    tmpDmg -= dmg * reducePercent;
+    // reduce the damage because of damage resistances
+    if (type == ENEMY_RESITS_BULLETS && (dmgType == TOWER_GATLING || dmgType == TOWER_CANNON))
+      dmg /= 2;
+
+    if (type == ENEMY_RESITS_LASERS && (dmgType == TOWER_RAILGUN || dmgType == TOWER_LASER))
+      dmg /= 2;
+
+    if (type == ENEMY_RESITS_AOES && (dmgType == TOWER_FLAME || dmgType == TOWER_SHOCK))
+      dmg /= 2;
 
 #ifdef DEGUG_DMG_ENEMYS
-    Serial.print(" is:");
-    Serial.println(tmpDmg / 100, 2);
+    Serial.print(" resisted: ");
+    Serial.print(dmg, DEC);
 #endif
 
-    if (health > tmpDmg) {
-      health -= tmpDmg;
+    // do the animation
+
+
+    if (health > dmg) {
+      health -= dmg;
+
+#ifdef DEGUG_DMG_ENEMYS
+    Serial.print(" health is now: ");
+    Serial.println(health, DEC);
+#endif
+
+      return false;  
 
     } else {
       //Serial.println("Enemy Died");
       die();
 
+#ifdef DEGUG_DMG_ENEMYS
+    Serial.println(" died");
+#endif
+
       return true;
     }
-
-    return false;
   }
 
   void die() {
     health = 0;
     //state = STATE_DEAD;
+
+    
   }
 
   void drawHealthBar() {
@@ -201,7 +269,7 @@ struct enemy {
   void draw() {
     bool isLookingLeft = getBit(pathStorage, BIT_LOOKS_LEFT);
 
-    uint8_t st = state % 3;
+    uint8_t st = getState() % 3;
 
     uint8_t w;
     if (type <= ANIMAL_GHOST) {
@@ -249,8 +317,20 @@ struct enemy {
 };
 
 struct enemyManager {
-  static const uint8_t maximum = 14;
+  static const uint8_t maximum = 10;
   enemy list[maximum];
+
+  void clearEnemy(uint8_t index) {
+    bitClear(list[index].pathStorage, BIT_ENEMY_ACTIVE);
+  }
+
+  void setEnemyActive(uint8_t index) {
+    bitSet(list[index].pathStorage, BIT_ENEMY_ACTIVE);
+  }
+
+  bool isEnemyActive(uint8_t index) {
+    return getBit(list[index].pathStorage, BIT_ENEMY_ACTIVE);
+  }
 
   void add(uint8_t x, uint8_t y, uint8_t type) {
 
@@ -258,10 +338,10 @@ struct enemyManager {
     for (uint8_t i = 0; i < maximum; i++) {
 
       // look if this slot is already used
-      if (list[i].active == true)
+      if (isEnemyActive(i))
         continue;
 
-      list[i].active = true;
+      setEnemyActive(i);;
       foundSlot = true;
 
       // set values
@@ -269,6 +349,7 @@ struct enemyManager {
       list[i].y = y;
       list[i].type = type;
       list[i].health = 100 * 100;
+      list[i].frozenState = 0;
       break;
     }
 
@@ -278,29 +359,18 @@ struct enemyManager {
 #endif
   }
 
-  uint8_t count() {
-    uint8_t num = 0;
-
-    for (uint8_t i = 0; i < maximum; i++) {
-      if (list[i].active && list[i].health > 0)
-        num++;
-    }
-
-    return num;
-  }
-
   void update() {
 
     for (uint8_t i = 0; i < maximum; i++) {
 
       // update only active enemys
-      if (list[i].active == false)
+      if (isEnemyActive(i) == false)
         continue;
 
       list[i].update();
 
       // if they went inactive while updating
-      if (list[i].active == false)
+      if (isEnemyActive(i) == false)
         continue;
 
       list[i].draw();

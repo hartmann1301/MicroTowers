@@ -10,8 +10,6 @@
 
 #define USE_SERIAL
 //#define DEBUG_ADD_FUNCTIONS
-//#define DEGUG_DMG_PLAYER
-//#define DEGUG_DMG_ENEMYS
 #define DEBUG_FRAME_TIME
 
 #ifdef ESP8266
@@ -102,6 +100,7 @@ bool mapChanged = true;
 
 uint32_t nextButtonInput = 0;
 uint32_t gameFrames = 0;
+bool isFramesMod2 = true;
 
 uint32_t normalSpeedTime = 0;
 bool isFastSpeedFrame = false;
@@ -124,7 +123,7 @@ int16_t indexMapsListDelayed = 0;
 
 //eeprom data
 uint8_t unlockedMaps = 5;
-uint8_t currentCoins = 9;
+uint8_t currentCoins = 189;
 //
 
 bool isLongPressInfo(int8_t buttonState) {
@@ -179,24 +178,36 @@ enum {
 enum {
   TOWER_GATLING = 0,
   TOWER_CANNON,
-  TOWER_FROST, 
+  TOWER_FROST,
+  TOWER_RAILGUN,    
   TOWER_FLAME,
-  TOWER_RAILGUN,  
   TOWER_LASER,   
   TOWER_SHOCK,  
   TOWER_SUPPORT
 };
 
+bool isRotatingTower(uint8_t type) {
+  return type <= TOWER_LASER;
+}
+
 const uint8_t towerPrices [] PROGMEM = {
-  10,
-  15,
-  10,
-  25,
-  35,
-  15,
-  20,
-  20  
+  10,  15,  10,  25,  35,  15,  20,  20  
 };
+
+// in frames but will be times 2 because is checked only every second frame
+const uint8_t towerReloadTimes [] PROGMEM = {
+  5,  12,  12,  8
+}; // deleted laser, shock and support tower in this list
+
+// in pixels but will always be multiplyed by 2 and an offset added
+const uint8_t towerBasicRanges [] PROGMEM = {
+  4,  5,  8,  2,  0,  10,  2,  0  
+}; 
+
+// these values will be added with every extra level
+const uint8_t towerExtraRanges [] PROGMEM = {
+  2,  2,  1,  3,  0,  3,  1,  0  
+}; 
 
 const int8_t sektorStartX [] PROGMEM = {
   3,  3,  2,  1,  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3    
@@ -205,6 +216,10 @@ const int8_t sektorStartX [] PROGMEM = {
 const int8_t sektorStartY [] PROGMEM = {
   0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3,  3,  3,  2,  1 
 };
+
+uint8_t getProgMem(const uint8_t *pointer, uint8_t offset) {
+  return pgm_read_byte(pointer + offset);
+}
 
 int8_t getDirectionX(uint8_t sektor) {
   return pgm_read_byte(sektorStartX + sektor);

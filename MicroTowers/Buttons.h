@@ -254,7 +254,7 @@ void buttonsPlayingMenuTower() {
   if (arduboy.justReleased(A_BUTTON)) {
     switch (indexTowerMenu) {
       case TOWER_MENU_UPGRADE:
-        upgradeTower();
+        tryToUpgradeTower();
         break;
       case TOWER_MENU_INFO:
         Serial.println("do something in tower menu");
