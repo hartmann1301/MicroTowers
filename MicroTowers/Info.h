@@ -4,6 +4,43 @@
 #define yIcon 57
 #define yText (yIcon + 1)
 
+void setInfoMessage(uint8_t infoType) {
+
+  // set default screen time in frames
+  infoMsgTimeout = 40;
+
+  // set message type
+  infoMsgType = infoType;
+}
+
+bool drawInfoMessage() {
+
+  // decrement the time the current message is shown
+  if (infoMsgTimeout > 0)
+    infoMsgTimeout--;
+
+  // do nothing if no info message is set
+  if (infoMsgTimeout == 0)
+    return false;
+
+  mF.setCursor(1, yText);
+
+  // print message, 18 letters fit in easiely more if 1 and i appears often
+  if (infoMsgType == INFO_FORBIDDEN_BUILD) {
+    //.print(F("123456789 12345678"));
+    mF.print(F("NOT ALLOWED HERE"));
+
+  } else if (infoMsgType == INFO_BLOCKED_AREA) {
+    mF.print(F("BLOCKED AREA"));
+    
+  } else if (infoMsgType == INFO_ENTRY_BLOCK) {
+    mF.print(F("NO ENTRY BLOCKING"));
+    
+  }
+
+  return true;
+}
+
 void scrollIndex(int16_t &indexInPixels, int16_t pixelValue) {
 
   // calculate the diff of the current scroll and the index
@@ -48,7 +85,7 @@ void drawMainMenuText(int16_t xWrite, uint8_t index) {
 void drawMainMenuRank() {
   const uint8_t xPos = 123;
   const uint8_t xWidth = 5;
-  
+
   // background
   arduboy.fillRect(xPos, 0, xWidth, 56, BLACK);
 
@@ -56,9 +93,9 @@ void drawMainMenuRank() {
   arduboy.drawRect(xPos, 51, xWidth, 3, WHITE);
 
   // draw rank symbol
-  drawBitmapFast(xPos, 42, rankSymbols, xWidth, 0, false, WHITE); 
-  drawBitmapFast(xPos, 37, rankSymbols, xWidth, 0, false, WHITE);   
-  drawBitmapFast(xPos, 32, rankSymbols, xWidth, 0, false, WHITE);   
+  drawBitmapFast(xPos, 42, rankSymbols, xWidth, 0, false, WHITE);
+  drawBitmapFast(xPos, 37, rankSymbols, xWidth, 0, false, WHITE);
+  drawBitmapFast(xPos, 32, rankSymbols, xWidth, 0, false, WHITE);
 }
 
 void drawMainMenu() {
@@ -258,6 +295,10 @@ void drawInfosPlayingAll() {
 }
 
 void drawInfoLine() {
+
+  // info messages have highest prio
+  if (drawInfoMessage())
+    return;
 
   if (gameMode == MODE_MAINMENU) {
     drawMainMenu();

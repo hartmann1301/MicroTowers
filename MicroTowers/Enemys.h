@@ -83,13 +83,19 @@ struct enemy {
 
   void saveDirection(uint8_t dir) {
 
+    //Serial.print("pathStorage was : ");
+    //Serial.println(pathStorage, HEX);
+
     // calc shifts for the current slot
     uint8_t shifts = (getState() % 3) * 2;
 
     //Serial.println("Save: " + String(dir) + " with shifts:" + String(shifts));
 
-    // delete last direction
-    pathStorage &= ~(0b00000011 << shifts);
+    // create mask for current direction zeros and bits 6 and 7 ones
+    uint8_t directionMask = ~(0b00000011 << shifts) | 0xc0;
+
+    // delete old directions
+    pathStorage &= directionMask;
 
     // shift current dir to the right slot
     dir = dir << shifts;
@@ -113,7 +119,6 @@ struct enemy {
   }
 
   void update() {
-
     if (isFramesMod2 && type != ENEMY_IS_FAST)
       return;
 
@@ -328,8 +333,14 @@ struct enemyManager {
     bitSet(list[index].pathStorage, BIT_ENEMY_ACTIVE);
   }
 
-  bool isEnemyActive(uint8_t index) {
+  bool isEnemyActive(uint8_t index) {   
     return getBit(list[index].pathStorage, BIT_ENEMY_ACTIVE);
+  }
+
+  void init() {
+    for (uint8_t i = 0; i < maximum; i++) {
+      clearEnemy(i);
+    }
   }
 
   void add(uint8_t x, uint8_t y, uint8_t type) {
@@ -343,6 +354,8 @@ struct enemyManager {
 
       setEnemyActive(i);;
       foundSlot = true;
+
+      //Serial.println("add enemy: " + String(i) + " of type: " + String(type));
 
       // set values
       list[i].x = x;

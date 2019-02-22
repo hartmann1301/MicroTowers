@@ -8,27 +8,6 @@
 //#define DEBUG_PATH_PRINT
 #endif
 
-enum {
-  MAP_FREE = 0,
-  MAP_TOWER,
-  MAP_ROCK,
-  MAP_NOBUILD,
-};
-
-uint8_t getIndex(uint8_t xR, uint8_t yR) {
-  //Serial.println("getIndex xR:" + String(xR) + " yR:" + String(yR) + " is :" + String(xR + yR * ROWS));
-
-  return xR + yR * ROWS;
-}
-
-uint8_t getxR(uint8_t index) {
-  return index % ROWS;
-}
-
-uint8_t getyR(uint8_t index) {
-  return index / ROWS;
-}
-
 struct pathList {
   static const uint8_t maximum = 20;
   uint8_t len = 0;
@@ -339,7 +318,7 @@ struct mapMangager {
             break;
 
           case MAP_TOWER:
-            // this headquarter is too big for the 4 pixels per node, so it can be covered a bit          
+            // this headquarter is too big for the 4 pixels per node, so it can be covered a bit
             arduboy.drawRoundRect(xPos - 1, yPos - 1, 4, 4, 1, BLACK);
             break;
 
@@ -382,13 +361,19 @@ struct mapMangager {
     openList.add(headquarterPosition);
 
     uint8_t currentCost = 0;
+    bool foundEntry = false;
 
     for (uint8_t i = 0; i < NODES / 2; i++) {
 
       // go to openList and set costs and neightbours
       for (int16_t i = 0; i < openList.len; i++) {
 
+        // get current node from list
         uint8_t n = openList.data[i];
+
+        // check if this is the headquarter
+        if (n == ENTRY_POSITION)
+          foundEntry = true;
 
 #ifdef DEBUG_PATH_PRINT
         Serial.println("node:" + String(n) + " set Cost to:" + String(currentCost));
@@ -421,11 +406,11 @@ struct mapMangager {
         }
 
 #ifdef DEBUG_PATH_MAP
-        Serial.println("Path took: " + String(micros() - startMap));
-
+        Serial.println("Path took: " + String(micros() - startMap) + " found Entry:" + foundEntry);
+        
         printMap();
 #endif
-        return true;
+        return foundEntry;
       }
 
       // clear the nextList
@@ -434,7 +419,13 @@ struct mapMangager {
       currentCost++;
     }
 
-    // did not find a path
+#ifdef DEBUG_PATH_MAP
+    Serial.println("Map Error");
+
+    printMap();
+#endif
+
+    // can not get here
     return false;
   }
 

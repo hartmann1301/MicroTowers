@@ -44,8 +44,8 @@ towerManager tM;
 
 #include "Eeprom.h"
 #include "Info.h"
-#include "Game.h"
 #include "Menu.h"
+#include "Game.h"
 #include "Buttons.h"
 
 void setup() {
@@ -68,7 +68,9 @@ void setup() {
   arduboy.begin();
   arduboy.setFrameRate(GAME_FRAMES);
 
-  //mM.createMap();
+ // initialise the managers
+ tM.init();
+ eM.init();
 
   goToMainMenu();
 
@@ -99,6 +101,9 @@ void loop() {
   isFramesMod2 = gameFrames % 2;
 
   checkButtons();
+
+  if (gameMode != MODE_MAPS_LIST)
+    updateGame();
 
   drawMenus();
 

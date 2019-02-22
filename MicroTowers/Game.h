@@ -5,15 +5,11 @@ void tryToBuildTower() {
   // get the needed money
   uint8_t price = getProgMem(towerPrices, indexBuildMenu);
 
-
-  // check if tower blocks path
-
-
   // return because player has to less money
   if (currentCoins < price)
     return;
 
-  // buy the upgrade
+  // buy the tower
   currentCoins -= price;
 
   // put tower to map
@@ -97,7 +93,7 @@ void checkHits() {
   for (uint8_t i = 0; i < eM.maximum; i++) {
 
     // check only active enemys
-    if (eM.isEnemyActive(i))
+    if (eM.isEnemyActive(i) == false)
       continue;
 
     uint8_t projIndex = pM.isProjectileAt(eM.list[i].x, eM.list[i].y);
@@ -105,6 +101,8 @@ void checkHits() {
     // continue because no index was found
     if (projIndex == 0xff)
       continue;
+
+    //Serial.println(String(projIndex) + " is projIndex");
 
     uint8_t enemyType = eM.list[i].type;
     uint8_t projectileType = pM.list[projIndex].getType();
@@ -126,12 +124,29 @@ void checkHits() {
     // railgun projectiles fly trough the whole map, flames destroy themself
     if (projectileType == TOWER_FLAME || projectileType == TOWER_RAILGUN)
       return;
-      
+
     // set flag to destroy this projectile later
-    // if (projectileType == TOWER_CANON)   
+    // if (projectileType == TOWER_CANON)
+
+    //Serial.println("hit of enemy: " + String(i) + " with projectile:" + String(projectileType));
 
     pM.clearProjectile(projIndex);
   }
+}
+
+void updateGame() {
+
+  mM.drawMap();
+
+  if (mapChanged) {
+    mM.findPath();
+  }
+
+  tM.update();
+  eM.update();
+  pM.update();
+
+  checkHits();
 }
 
 #endif

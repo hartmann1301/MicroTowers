@@ -218,12 +218,35 @@ void buttonsPlaying() {
   if (arduboy.justReleased(B_BUTTON)) {
 
     // check if cursor area is free to build
-    if (isCursorAreaType(MAP_FREE))
-      gameMode = MODE_PLAYING_BUILD;
+    if (xCursor == 0 && (yCursor == 3 || yCursor == 4)) {
+      // put something is in cursor area message
+      setInfoMessage(INFO_ENTRY_BLOCK);
 
-    // check if cursor area is a tower
-    if (isCursorAreaType(MAP_TOWER))
+    } else if (isCursorAreaType(MAP_FREE)) {
+
+      // put add some tower to the current cursor position
+      tM.add(xCursor, yCursor, 0);
+
+      // check if it is allowed to build here
+      if (mM.findPath()) {
+        gameMode = MODE_PLAYING_BUILD;
+
+      } else {
+        // put not allowed to build here message to the info line
+        setInfoMessage(INFO_FORBIDDEN_BUILD);
+      }
+
+      // sell this test tower again
+      tM.sell(tM.getTowerAt(xCursor, yCursor));
+
+      // check if cursor area is a tower
+    } else if (isCursorAreaType(MAP_TOWER)) {
       gameMode = MODE_PLAYING_TOWER;
+
+    } else {
+      // put something is in cursor area message
+      setInfoMessage(INFO_BLOCKED_AREA);
+    }
   }
 
   moveCursor();

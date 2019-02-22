@@ -2,10 +2,6 @@
 #define GameSprites_h
 
 /*
-  Sounds
-*/
-
-/*
   const uint16_t soundStdWeapon [] PROGMEM = {100, 50, 75, 50, 50, 50, TONES_END};
   //const uint16_t soundRocketWeapon [] PROGMEM = {};
   const uint16_t soundLaserWeapon [] PROGMEM = {300, 50, 350, 50, 400, 50, TONES_END};
@@ -16,6 +12,35 @@
   const uint16_t soundPlayerHit [] PROGMEM = {1100, 50, 400, 50, 150, 50, TONES_END};
   const uint16_t soundShopBuy [] PROGMEM = {250, 50, 350, 50, 450, 100, 500, 50, TONES_END};
 */
+
+// GATLING, CANNON, FROST, RAILGUN, FLAME, LASER, SHOCK, SUPPORT    
+
+const uint8_t towerPrices [] PROGMEM = {
+  10,  15,  10,  25,  35,  15,  20,  20  
+};
+
+// in frames but will be times 2 because is checked only every second frame
+const uint8_t towerReloadTimes [] PROGMEM = {
+  5,  12,  12,  8
+}; // deleted laser, shock and support tower in this list
+
+// in pixels but will always be multiplyed by 2 and an offset added
+const uint8_t towerBasicRanges [] PROGMEM = {
+  4,  6,  3,  3,  2,  10,  1,  0  
+}; 
+
+// these values will be added with every extra level
+const uint8_t towerExtraRanges [] PROGMEM = {
+  2,  3,  1,  4,  2,  3,  1,  0  
+}; 
+
+const int8_t sektorStartX [] PROGMEM = {
+  3,  3,  2,  1,  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3    
+};
+
+const int8_t sektorStartY [] PROGMEM = {
+  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3,  3,  3,  2,  1 
+};
 
 // 'allTowers', 56x104px
 const unsigned char allTowers [] PROGMEM = {
@@ -67,6 +92,7 @@ const unsigned char allTowers [] PROGMEM = {
   0x1c, 0x3c, 0x19, 0x4b, 0x7f, 0x69, 0x4c, 0x1e
 };
 
+// 'allMaps'
 const unsigned char allMaps [] PROGMEM = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, // map 1
   0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00,
@@ -134,31 +160,10 @@ const unsigned char editorSymbole [] PROGMEM = {
   0x0e, 0x36, 0x2a, 0x04
 };
 
-
-/*
-   Animations
-*/
-
-// 'animationStdGun', 24x4px
-const unsigned char animationStdGun [] PROGMEM = {
-  0xfe, 0xda, 0xe6, 0xf5, 0x25, 0x3f, 0x69, 0x2b, 0xff, 0xbb, 0x5d, 0xff
-};
-
 // 'animationImpact', 16x3px
 const unsigned char animationImpact [] PROGMEM = {
   0xfd, 0x96, 0xea, 0x6f, 0xcd, 0xbb
 };
-
-// 'animationBoom', 32x10px
-const unsigned char animationBoom [] PROGMEM = {
-  0xff, 0xff, 0xff, 0xfa, 0xff, 0xff, 0xff, 0x85, 0xff, 0xff, 0xc8, 0x0b, 0xff, 0xfc, 0x80, 0x36,
-  0xff, 0xf8, 0x33, 0x4f, 0xff, 0xcb, 0x44, 0xef, 0xfe, 0xac, 0xdd, 0xff, 0xed, 0xdd, 0xde, 0xff,
-  0xcc, 0x45, 0x6e, 0xff, 0x91, 0x13, 0x77, 0xff
-};
-
-/*
-   Enemys
-*/
 
 // 'enemyHumans', 18x40px
 const unsigned char enemyHumans [] PROGMEM = {
@@ -192,130 +197,5 @@ const unsigned char enemyAnimals [] PROGMEM = {
   0xf8, 0x78, 0x3c, 0x2c, 0x14, 0x40, 0x20, 0xf0, 0x70, 0x78, 0xf8, 0x3c, 0x2c, 0x14, 0x40, 0x20,
   0x70, 0xf0, 0x78, 0x78, 0xbc, 0x2c, 0x14
 };
-
-bool getBit(uint8_t data, uint8_t pos) {
-  return data & (0b00000001 << pos);
-}
-
-uint8_t getHighNibble(uint8_t nib) {
-  return (nib & 0xf0) >> 4;
-};
-
-uint8_t getLowNibble(uint8_t nib) {
-  return nib & 0x0f;
-};
-
-void setHighNibble(uint8_t &nib, uint8_t value) {
-  nib = (nib & 0x0f) | value << 4;
-};
-
-void setLowNibble(uint8_t &nib, uint8_t value) {
-  nib = (nib & 0xf0) | (value & 0xf);
-};
-
-uint8_t integerSqrt(uint8_t n) {
-  if (n < 2)
-    return n;
-
-  uint8_t smallCandidate = integerSqrt(n >> 2) << 1;
-  uint8_t largeCandidate = smallCandidate + 1;
-
-  if (largeCandidate * largeCandidate > n) {
-    return smallCandidate;
-  } else {
-    return largeCandidate;
-  }
-}
-
-// big thanks to the following page for the awesome code
-// https://www.romanblack.com/integer_degree.htm
-uint16_t fastAtan(int16_t x, int16_t y) {
-
-  // Fast XY vector to integer degree algorithm - Jan 2011 www.RomanBlack.com
-  // Converts any XY values including 0 to a degree value that should be
-  // within +/- 1 degree of the accurate value without needing
-  // large slow trig functions like ArcTan() or ArcCos().
-  // NOTE! at least one of the X or Y values must be non-zero!
-  // This is the full version, for all 4 quadrants and will generate
-  // the angle in integer degrees from 0-360.
-  // Any values of X and Y are usable including negative values provided
-  // they are between -1456 and 1456 so the 16bit multiply does not overflow.
-
-  unsigned char negflag;
-  unsigned char tempdegree;
-  unsigned char comp;
-  unsigned int degree;     // this will hold the result
-  //signed int x;            // these hold the XY vector at the start
-  //signed int y;            // (and they will be destroyed)
-  unsigned int ux;
-  unsigned int uy;
-
-  // Save the sign flags then remove signs and get XY as unsigned ints
-  negflag = 0;
-  if (x < 0)
-  {
-    negflag += 0x01;    // x flag bit
-    x = (0 - x);        // is now +
-  }
-  ux = x;                // copy to unsigned var before multiply
-  if (y < 0)
-  {
-    negflag += 0x02;    // y flag bit
-    y = (0 - y);        // is now +
-  }
-  uy = y;                // copy to unsigned var before multiply
-
-  // 1. Calc the scaled "degrees"
-  if (ux > uy)
-  {
-    degree = (uy * 45) / ux;   // degree result will be 0-45 range
-    negflag += 0x10;    // octant flag bit
-  }
-  else
-  {
-    degree = (ux * 45) / uy;   // degree result will be 0-45 range
-  }
-
-  // 2. Compensate for the 4 degree error curve
-  comp = 0;
-  tempdegree = degree;    // use an unsigned char for speed!
-  if (tempdegree > 22)     // if top half of range
-  {
-    if (tempdegree <= 44) comp++;
-    if (tempdegree <= 41) comp++;
-    if (tempdegree <= 37) comp++;
-    if (tempdegree <= 32) comp++; // max is 4 degrees compensated
-  }
-  else    // else is lower half of range
-  {
-    if (tempdegree >= 2) comp++;
-    if (tempdegree >= 6) comp++;
-    if (tempdegree >= 10) comp++;
-    if (tempdegree >= 15) comp++; // max is 4 degrees compensated
-  }
-  degree += comp;   // degree is now accurate to +/- 1 degree!
-
-  // Invert degree if it was X>Y octant, makes 0-45 into 90-45
-  if (negflag & 0x10) degree = (90 - degree);
-
-  // 3. Degree is now 0-90 range for this quadrant,
-  // need to invert it for whichever quadrant it was in
-  if (negflag & 0x02)  // if -Y
-  {
-    if (negflag & 0x01)  // if -Y -X
-      degree = (180 + degree);
-    else        // else is -Y +X
-      degree = (180 - degree);
-  }
-  else    // else is +Y
-  {
-    if (negflag & 0x01)  // if +Y -X
-      degree = (360 - degree);
-  }
-
-  return degree;
-}
-
-
 
 #endif

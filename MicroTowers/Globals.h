@@ -6,8 +6,6 @@
 #include <Arduboy2.h>
 #include <ArduboyTones.h>
 
-// mSelectedMenuItem == 0 ? 12 : mSelectedMenuItem - 1;
-
 #define USE_SERIAL
 //#define DEBUG_ADD_FUNCTIONS
 #define DEBUG_FRAME_TIME
@@ -40,6 +38,7 @@ void getButtons() {
 #define ROWS                20
 #define NODES               (ROWS*COLUMNS)
 #define NODES_COMPRESSED    (NODES / 4)
+#define ENTRY_POSITION      ((COLUMNS / 2) * ROWS)
 
 #define BUFFER_MAX          (WIDTH*HEIGHT/8)
 
@@ -67,22 +66,19 @@ void getButtons() {
 #define INT8_MIN            -128
 #define INT8_MAX            127
 
+// rotations for the draw bitmap slow function
+#define NOROT 0
+#define ROTCCW 1
+#define ROT180 2
+#define ROTCW 3
+
 // this buffer is for the drawing function
 uint8_t* buffer = arduboy.getBuffer();
 
-enum {
-  MODE_MAINMENU = 0,
-  MODE_MAPS_LIST,
-  MODE_PLAYING_INFO,  
-  MODE_PLAYING,
-  MODE_PLAYING_BUILD,
-  MODE_PLAYING_TOWER,
-  MODE_EDITOR,
-  MODE_EDITOR_MENU,
-  MODE_OPTIONS,  
-  MODE_CREDITS
-};
 uint8_t gameMode;
+
+uint8_t infoMsgTimeout = 0;
+uint8_t infoMsgType = 0;
 
 // in this array the look and the behaviour of the current map is stored
 uint8_t mapComposition[NODES / 4];
@@ -98,9 +94,10 @@ bool cursorPressed = false;
 bool isNormalSpeed = true;
 bool mapChanged = true;
 
+bool isFramesMod2;
+
 uint32_t nextButtonInput = 0;
 uint32_t gameFrames = 0;
-bool isFramesMod2 = true;
 
 uint32_t normalSpeedTime = 0;
 bool isFastSpeedFrame = false;
@@ -126,21 +123,31 @@ uint8_t unlockedMaps = 5;
 uint8_t currentCoins = 189;
 //
 
-bool isLongPressInfo(int8_t buttonState) {
-  return buttonState > LONGPRESS_INFO;
-}
+enum {
+  MODE_MAINMENU = 0,
+  MODE_MAPS_LIST,
+  MODE_PLAYING_INFO,  
+  MODE_PLAYING,
+  MODE_PLAYING_BUILD,
+  MODE_PLAYING_TOWER,
+  MODE_EDITOR,
+  MODE_EDITOR_MENU,
+  MODE_OPTIONS,  
+  MODE_CREDITS
+};
 
-bool isLongPressed(int8_t buttonState) {
-  return buttonState > LONGPRESS_TIME;
-}
+enum {
+  MAP_FREE = 0,
+  MAP_TOWER,
+  MAP_ROCK,
+  MAP_NOBUILD,
+};
 
-bool inPlayingMode(uint8_t m) {
-  return m >= MODE_PLAYING_INFO && m <= MODE_PLAYING_TOWER;
-}
-
-bool inEditorMode(uint8_t m) {
-  return m == MODE_EDITOR || m == MODE_EDITOR_MENU;
-}
+enum {
+  INFO_FORBIDDEN_BUILD = 0,
+  INFO_BLOCKED_AREA,
+  INFO_ENTRY_BLOCK
+};
 
 enum {
   GO_RIGHT = 0,
@@ -185,48 +192,5 @@ enum {
   TOWER_SHOCK,  
   TOWER_SUPPORT
 };
-
-bool isRotatingTower(uint8_t type) {
-  return type <= TOWER_LASER;
-}
-
-const uint8_t towerPrices [] PROGMEM = {
-  10,  15,  10,  25,  35,  15,  20,  20  
-};
-
-// in frames but will be times 2 because is checked only every second frame
-const uint8_t towerReloadTimes [] PROGMEM = {
-  5,  12,  12,  8
-}; // deleted laser, shock and support tower in this list
-
-// in pixels but will always be multiplyed by 2 and an offset added
-const uint8_t towerBasicRanges [] PROGMEM = {
-  4,  5,  8,  2,  0,  10,  2,  0  
-}; 
-
-// these values will be added with every extra level
-const uint8_t towerExtraRanges [] PROGMEM = {
-  2,  2,  1,  3,  0,  3,  1,  0  
-}; 
-
-const int8_t sektorStartX [] PROGMEM = {
-  3,  3,  2,  1,  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3    
-};
-
-const int8_t sektorStartY [] PROGMEM = {
-  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3,  3,  3,  2,  1 
-};
-
-uint8_t getProgMem(const uint8_t *pointer, uint8_t offset) {
-  return pgm_read_byte(pointer + offset);
-}
-
-int8_t getDirectionX(uint8_t sektor) {
-  return pgm_read_byte(sektorStartX + sektor);
-}
-
-int8_t getDirectionY(uint8_t sektor) {
-  return pgm_read_byte(sektorStartY + sektor);
-}
 
 #endif

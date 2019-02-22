@@ -1,11 +1,78 @@
 #ifndef Helper_h
 #define Helper_h
 
-//for extended bitmap function :
-#define NOROT 0
-#define ROTCCW 1
-#define ROT180 2
-#define ROTCW 3
+bool getBit(uint8_t data, uint8_t pos) {
+  return data & (0b00000001 << pos);
+}
+
+uint8_t getHighNibble(uint8_t nib) {
+  return (nib & 0xf0) >> 4;
+}
+
+uint8_t getLowNibble(uint8_t nib) {
+  return nib & 0x0f;
+}
+
+uint8_t getLow2Bits(uint8_t data) {
+  return data & 0x03;
+}
+
+void setLow2Bits(uint8_t &data, uint8_t value) {
+  data = (data & 0xfc) | (value & 0x03);
+}
+
+void setHighNibble(uint8_t &nib, uint8_t value) {
+  nib = (nib & 0x0f) | value << 4;
+}
+
+void setLowNibble(uint8_t &nib, uint8_t value) {
+  nib = (nib & 0xf0) | (value & 0xf);
+}
+
+bool isRotatingTower(uint8_t type) {
+  return type <= TOWER_LASER;
+}
+
+uint8_t getProgMem(const uint8_t *pointer, uint8_t offset) {
+  return pgm_read_byte(pointer + offset);
+}
+
+// could be done with getProgMem() but is called 3 times so it is maybe worth a function
+int8_t getDirectionX(uint8_t sektor) {
+  return pgm_read_byte(sektorStartX + sektor);
+}
+
+int8_t getDirectionY(uint8_t sektor) {
+  return pgm_read_byte(sektorStartY + sektor);
+}
+
+bool isLongPressInfo(int8_t buttonState) {
+  return buttonState > LONGPRESS_INFO;
+}
+
+bool isLongPressed(int8_t buttonState) {
+  return buttonState > LONGPRESS_TIME;
+}
+
+bool inPlayingMode(uint8_t m) {
+  return m >= MODE_PLAYING_INFO && m <= MODE_PLAYING_TOWER;
+}
+
+bool inEditorMode(uint8_t m) {
+  return m == MODE_EDITOR || m == MODE_EDITOR_MENU;
+}
+
+uint8_t getIndex(uint8_t xR, uint8_t yR) {
+  return xR + yR * ROWS;
+}
+
+uint8_t getxR(uint8_t index) {
+  return index % ROWS;
+}
+
+uint8_t getyR(uint8_t index) {
+  return index / ROWS;
+}
 
 void drawBitmapSlow(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8_t h, uint8_t offset, uint8_t rotation, uint8_t color) {
 
@@ -220,42 +287,108 @@ void drawTowerSocket(uint8_t x, uint8_t y, uint8_t lvl) {
   arduboy.drawRoundRect(x, y, 11, 11, socketCorner, BLACK);
 }
 
-void drawMapBorders() {
-  // some fixed values just for better code reading
-  const uint8_t xPos = 122;
-  const uint8_t yEnd = 55;
-  
-  // draw left and bottom lines
-  arduboy.drawLine(0, 0, 0, 24, BLACK);
-  arduboy.drawLine(0, 30, 0, 54, BLACK);
-  arduboy.drawLine(0, yEnd, xPos, yEnd, BLACK);
+uint8_t integerSqrt(uint8_t n) {
+  if (n < 2)
+    return n;
 
-  if (xPosRightMenu > xPos + 2) {
-    // draw complete line right to battlefield
-    arduboy.drawLine(xPos, 0, xPos, yEnd, BLACK);
+  uint8_t smallCandidate = integerSqrt(n >> 2) << 1;
+  uint8_t largeCandidate = smallCandidate + 1;
 
+  if (largeCandidate * largeCandidate > n) {
+    return smallCandidate;
   } else {
-
-    // with 8 tower there is no space for a right border
-    if (gameMode == MODE_PLAYING_BUILD)
-      return;
-
-    uint8_t lineEnd, lineStart;
-    if (inEditorMode(gameMode)) {
-      // for the editor menu with 4 items
-      lineEnd = 10;
-      lineStart = 45;
-
-    } else {
-      // for the tower menu with 3 items
-      lineEnd = 13;
-      lineStart = 42;
-    }
-
-    // some line over and under the menu
-    arduboy.drawLine(xPos, 0, xPos, lineEnd, BLACK);
-    arduboy.drawLine(xPos, lineStart, xPos, yEnd, BLACK);
+    return largeCandidate;
   }
 }
+
+// big thanks to the following page for the awesome code
+// https://www.romanblack.com/integer_degree.htm
+uint16_t fastAtan(int16_t x, int16_t y) {
+
+  // Fast XY vector to integer degree algorithm - Jan 2011 www.RomanBlack.com
+  // Converts any XY values including 0 to a degree value that should be
+  // within +/- 1 degree of the accurate value without needing
+  // large slow trig functions like ArcTan() or ArcCos().
+  // NOTE! at least one of the X or Y values must be non-zero!
+  // This is the full version, for all 4 quadrants and will generate
+  // the angle in integer degrees from 0-360.
+  // Any values of X and Y are usable including negative values provided
+  // they are between -1456 and 1456 so the 16bit multiply does not overflow.
+
+  unsigned char negflag;
+  unsigned char tempdegree;
+  unsigned char comp;
+  unsigned int degree;     // this will hold the result
+  //signed int x;            // these hold the XY vector at the start
+  //signed int y;            // (and they will be destroyed)
+  unsigned int ux;
+  unsigned int uy;
+
+  // Save the sign flags then remove signs and get XY as unsigned ints
+  negflag = 0;
+  if (x < 0)
+  {
+    negflag += 0x01;    // x flag bit
+    x = (0 - x);        // is now +
+  }
+  ux = x;                // copy to unsigned var before multiply
+  if (y < 0)
+  {
+    negflag += 0x02;    // y flag bit
+    y = (0 - y);        // is now +
+  }
+  uy = y;                // copy to unsigned var before multiply
+
+  // 1. Calc the scaled "degrees"
+  if (ux > uy)
+  {
+    degree = (uy * 45) / ux;   // degree result will be 0-45 range
+    negflag += 0x10;    // octant flag bit
+  }
+  else
+  {
+    degree = (ux * 45) / uy;   // degree result will be 0-45 range
+  }
+
+  // 2. Compensate for the 4 degree error curve
+  comp = 0;
+  tempdegree = degree;    // use an unsigned char for speed!
+  if (tempdegree > 22)     // if top half of range
+  {
+    if (tempdegree <= 44) comp++;
+    if (tempdegree <= 41) comp++;
+    if (tempdegree <= 37) comp++;
+    if (tempdegree <= 32) comp++; // max is 4 degrees compensated
+  }
+  else    // else is lower half of range
+  {
+    if (tempdegree >= 2) comp++;
+    if (tempdegree >= 6) comp++;
+    if (tempdegree >= 10) comp++;
+    if (tempdegree >= 15) comp++; // max is 4 degrees compensated
+  }
+  degree += comp;   // degree is now accurate to +/- 1 degree!
+
+  // Invert degree if it was X>Y octant, makes 0-45 into 90-45
+  if (negflag & 0x10) degree = (90 - degree);
+
+  // 3. Degree is now 0-90 range for this quadrant,
+  // need to invert it for whichever quadrant it was in
+  if (negflag & 0x02)  // if -Y
+  {
+    if (negflag & 0x01)  // if -Y -X
+      degree = (180 + degree);
+    else        // else is -Y +X
+      degree = (180 - degree);
+  }
+  else    // else is +Y
+  {
+    if (negflag & 0x01)  // if +Y -X
+      degree = (360 - degree);
+  }
+
+  return degree;
+}
+
 
 #endif

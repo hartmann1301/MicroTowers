@@ -1,6 +1,44 @@
 #ifndef GameMenus_h
 #define GameMenus_h
 
+void drawMapBorders() {
+  // some fixed values just for better code reading
+  const uint8_t xPos = 122;
+  const uint8_t yEnd = 55;
+  
+  // draw left and bottom lines
+  arduboy.drawLine(0, 0, 0, 24, BLACK);
+  arduboy.drawLine(0, 30, 0, 54, BLACK);
+  arduboy.drawLine(0, yEnd, xPos, yEnd, BLACK);
+
+  if (xPosRightMenu > xPos + 2) {
+    // draw complete line right to battlefield
+    arduboy.drawLine(xPos, 0, xPos, yEnd, BLACK);
+
+  } else {
+
+    // with 8 tower there is no space for a right border
+    if (gameMode == MODE_PLAYING_BUILD)
+      return;
+
+    uint8_t lineEnd, lineStart;
+    if (inEditorMode(gameMode)) {
+      // for the editor menu with 4 items
+      lineEnd = 10;
+      lineStart = 45;
+
+    } else {
+      // for the tower menu with 3 items
+      lineEnd = 13;
+      lineStart = 42;
+    }
+
+    // some line over and under the menu
+    arduboy.drawLine(xPos, 0, xPos, lineEnd, BLACK);
+    arduboy.drawLine(xPos, lineStart, xPos, yEnd, BLACK);
+  }
+}
+
 void drawMapInfos(uint8_t lvl) {
 
   mF.setCursor(5, 24);
@@ -194,26 +232,9 @@ void drawCredits() {
   mF.print(F("CREDITS"));
 }
 
-void updateGame() {
-
-  if (mapChanged) {
-    mM.findPath();
-  }
-
-  tM.update();
-  eM.update();
-  pM.update();
-
-  checkHits();
-}
-
 void drawMenus() {
 
   if (gameMode != MODE_MAPS_LIST) {
-
-    updateGame();
-
-    mM.drawMap();
 
     // the bottom line with all the hints
     drawInfoLine();
