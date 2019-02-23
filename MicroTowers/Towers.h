@@ -8,11 +8,14 @@ struct tower {
   // location on the map
   uint8_t index;
 
-  // highNibble: type, lowNibble: sektor
+  // highNibble: type, lowNibble: sektor     NOTE: highest bit of the type nibble is not used yet!
   uint8_t typeSektor;
 
   // highNibble: state, Bit3: active, Bit2: reloaded, Bits1&0: level
   uint8_t stateLevel;
+
+  // boost
+  uint8_t boost;
 
   // getters
   uint8_t getType() {
@@ -47,6 +50,11 @@ struct tower {
     //Serial.println("Tower: " + String(type) + " has Range of:" + String(range));
 
     return range;
+  }
+
+  void drawRange() {
+    // a circle to show the current range
+    arduboy.drawCircle(getCenterX(), getCenterY(), getRange(), BLACK);
   }
 
   // setters
@@ -403,7 +411,7 @@ struct towerManager {
     // set the 4 map notes to tower
     mM.set2x2Nodes(mapIndex, MAP_FREE);
 
-    Serial.println("sell Tower:" + String(towerIndex) + " at mapIndex:" + String(mapIndex));
+    //Serial.println("sell Tower:" + String(towerIndex) + " at mapIndex:" + String(mapIndex));
 
     // delete this tower
     clearTower(towerIndex);
@@ -445,7 +453,7 @@ struct towerManager {
 
       uint8_t mapIndex = getIndex(xR, yR);
 
-      Serial.println("add Tower:" + String(i) + " at mapIndex:" + String(mapIndex));
+      //Serial.println("add Tower:" + String(i) + " at mapIndex:" + String(mapIndex));
 
       // set the 4 map notes to tower
       mM.set2x2Nodes(xR, yR, MAP_TOWER);

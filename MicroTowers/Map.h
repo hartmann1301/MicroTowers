@@ -239,9 +239,13 @@ struct mapMangager {
       for (uint8_t xR = 0; xR < ROWS; xR++) {
         uint8_t xPos = RASTER_OFFSET_X + xR * RASTER;
 
+        // get index from xR and yR coordinates
         uint8_t index = getIndex(xR, yR);
 
-        switch (getCurrentMapNode(index)) {
+        // get on of the four map states
+        uint8_t currentMap = getCurrentMapNode(index);
+
+        switch (currentMap) {
 
           case MAP_FREE:
             break;
@@ -260,11 +264,34 @@ struct mapMangager {
             drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR + xR % 3) % 6 + 4, yR % 2);
             break;
         }
+
+        // no big house checks in the top and left row/column
+        if (xR == 0 || yR == 0)
+          continue;
+
+        // get four map nodes to the top left direction
+        uint8_t mapLeft    = getCurrentMapNode(getIndex(xR - 1, yR));
+        uint8_t mapTop     = getCurrentMapNode(getIndex(xR, yR - 1));
+        uint8_t mapLeftTop = getCurrentMapNode(getIndex(xR - 1, yR - 1));
+
+        // check if they are all rocks                
+        if (currentMap == MAP_ROCK && mapLeft == MAP_ROCK && mapTop == MAP_ROCK && mapLeftTop == MAP_ROCK) {
+
+          // get starting coordingates
+          uint8_t xHouse = xPos - 5;
+          uint8_t yHouse = yPos - 5;
+          
+          // clear map at this position
+          arduboy.fillRect(xHouse, yHouse, 11, 11, WHITE);
+
+          // draw variously one of two houses depending on index
+          drawBitmapSlow(xHouse, yHouse, mapHouses, 11, 11, index % 2, 0, BLACK);             
+        }
       }
     }
   }
 
-  void checkNeighbour(pathList &lNext, bool *lClosed, int16_t i) {
+  void checkNeighbour(pathList & lNext, bool * lClosed, int16_t i) {
     // only valid nodes
     if (i < 0 || i >= NODES)
       return;
@@ -407,7 +434,7 @@ struct mapMangager {
 
 #ifdef DEBUG_PATH_MAP
         Serial.println("Path took: " + String(micros() - startMap) + " found Entry:" + foundEntry);
-        
+
         printMap();
 #endif
         return foundEntry;
@@ -428,45 +455,6 @@ struct mapMangager {
     // can not get here
     return false;
   }
-
-  /*
-    void createMap() {
-
-    setNode(4, 0, MAP_ROCK);
-
-    setNode(10, 1, MAP_ROCK);
-    setNode(10, 2, MAP_ROCK);
-    setNode(10, 3, MAP_ROCK);
-    setNode(10, 4, MAP_ROCK);
-    setNode(10, 5, MAP_ROCK);
-    setNode(10, 6, MAP_ROCK);
-    setNode(10, 7, MAP_ROCK);
-    setNode(10, 8, MAP_ROCK);
-
-    setNode(7, 6, MAP_NOBUILD);
-    setNode(7, 7, MAP_NOBUILD);
-    setNode(8, 7, MAP_NOBUILD);
-    setNode(6, 6, MAP_NOBUILD);
-    setNode(6, 7, MAP_NOBUILD);
-    setNode(6, 8, MAP_NOBUILD);
-    setNode(5, 6, MAP_NOBUILD);
-    setNode(5, 7, MAP_NOBUILD);
-    setNode(5, 8, MAP_NOBUILD);
-    setNode(4, 6, MAP_NOBUILD);
-    setNode(4, 7, MAP_NOBUILD);
-    setNode(4, 8, MAP_NOBUILD);
-
-    setNode(15, 2, MAP_ROCK);
-    setNode(15, 3, MAP_ROCK);
-    setNode(15, 4, MAP_ROCK);
-    setNode(15, 5, MAP_ROCK);
-
-    setNode(12, 7, MAP_ROCK);
-    setNode(13, 7, MAP_ROCK);
-
-    setNode(18, 1, MAP_TOWER);
-    }
-  */
 };
 
 #endif

@@ -6,38 +6,6 @@
 #define BIT_ENEMY_ACTIVE  6
 #define BIT_LOOKS_LEFT    7
 
-enum {
-  ENEMY_TYPE_CYBORG = 0,
-  ENEMY_TYPE_TWOPOD,
-  ENEMY_TYPE_MONSTER
-};
-
-enum {
-  ENEMY_IS_DEFAULT = 0,
-  ENEMY_IS_FAST,
-  ENEMY_RESITS_BULLETS,
-  ENEMY_RESITS_LASERS,
-  ENEMY_RESITS_AOES
-};
-
-enum {
-  ANIMAL_RAT,
-  ANIMAL_HYENA,
-  ANIMAL_WOLF,
-  ANIMAL_PIG,
-  ANIMAL_GHOST,
-  HUMAN_RUNNING,
-  HUMAN_MG,
-  HUMAN_SHIELD,
-  HUMAN_ROCKET,
-  HUMAN_BACKPACK,
-  TWOPOD_LVL0,
-  TWOPOD_LVL1,
-  TWOPOD_LVL2,
-  TWOPOD_LVL3,
-  TWOPOD_LVL4
-};
-
 struct enemy {
   int8_t x;
   int8_t y;
@@ -151,19 +119,19 @@ struct enemy {
     mapCosts = mM.getCurrentCost(getCenterX(), getCenterY());
 
     // check if headquarter was reached
-    if (dir == NO_DIRECTION || health == 0) {
+    if (dir == NO_DIRECTION) {
 
-      if (type < 14) {
-        type++;
+      if (currentLifePoints > 0) {
+        currentLifePoints--;
+
       } else {
-        type = 0;
+        Serial.println("End of game");
+
+        currentLifePoints = 100;
       }
 
-      health = 100 * 100;
-
-      // respawn
-      x = millis() % 4 - 8;
-      y = 22;
+      // no need for this enemy anymore
+      die();
     }
 
     // increment state from 0-5
@@ -240,18 +208,18 @@ struct enemy {
       health -= dmg;
 
 #ifdef DEGUG_DMG_ENEMYS
-    Serial.print(" health is now: ");
-    Serial.println(health, DEC);
+      Serial.print(" health is now: ");
+      Serial.println(health, DEC);
 #endif
 
-      return false;  
+      return false;
 
     } else {
       //Serial.println("Enemy Died");
       die();
 
 #ifdef DEGUG_DMG_ENEMYS
-    Serial.println(" died");
+      Serial.println(" died");
 #endif
 
       return true;
@@ -259,16 +227,28 @@ struct enemy {
   }
 
   void die() {
-    health = 0;
-    //state = STATE_DEAD;
 
-    
+    // delete this enemy for the manager list
+    bitClear(pathStorage, BIT_ENEMY_ACTIVE);
   }
 
   void drawHealthBar() {
+
+    // twopods are a bit to high, so minus one pixel of yPos
+    int8_t yPos = y;
+    if (currentEnemysRace == ENEMY_TYPE_TWOPOD)
+      yPos--;
+
+    uint16_t oneHealthPixel = currentWaveHp / 7;
+
+    if (oneHealthPixel == 0)
+      return;
+
+    // calculate the length in pixels
+    uint8_t hLen = health / oneHealthPixel + 1;
+
     // draw healt bar
-    uint8_t hLen = (health / 100) / 14 + 1;
-    arduboy.fillRect((8 - hLen) + x, y, hLen, 1, BLACK);
+    arduboy.fillRect((8 - hLen) + x, yPos, hLen, 1, BLACK);
   }
 
   void draw() {
@@ -276,26 +256,27 @@ struct enemy {
 
     uint8_t st = getState() % 3;
 
-    uint8_t w;
-    if (type <= ANIMAL_GHOST) {
-      w = 9;
-    } else {
-      w = 6;
-    }
+    // default width is 6, can be changed later
+    uint8_t w = 6;
 
     const uint8_t *img;
-    if (type <= ANIMAL_GHOST) {
-      img = enemyAnimals;
-    } else if (type <= HUMAN_BACKPACK) {
-      img = enemyHumans;
-    } else {
+    if (currentEnemysRace == ENEMY_TYPE_CYBORG) {
+      img = enemyCyborgs;
+
+    } else if (type <= ENEMY_TYPE_TWOPOD) {
       img = enemyTwoPods;
+
+    } else {
+      img = enemyMonsters;
+
+      // monsters need a bit more pixels
+      w = 9;
     }
 
     drawHealthBar();
 
     // draw the spirte fast
-    drawBitmapFast(x, y, img, w, (type % 5) * 3 + st, isLookingLeft);
+    drawBitmapFast(x, y, img, w, type * 3 + st, isLookingLeft);
   }
 
   bool isInRange(int16_t xTower, int16_t yTower, int16_t range) {
@@ -322,7 +303,7 @@ struct enemy {
 };
 
 struct enemyManager {
-  static const uint8_t maximum = 10;
+  static const uint8_t maximum = 5;
   enemy list[maximum];
 
   void clearEnemy(uint8_t index) {
@@ -333,7 +314,7 @@ struct enemyManager {
     bitSet(list[index].pathStorage, BIT_ENEMY_ACTIVE);
   }
 
-  bool isEnemyActive(uint8_t index) {   
+  bool isEnemyActive(uint8_t index) {
     return getBit(list[index].pathStorage, BIT_ENEMY_ACTIVE);
   }
 
@@ -341,6 +322,93 @@ struct enemyManager {
     for (uint8_t i = 0; i < maximum; i++) {
       clearEnemy(i);
     }
+  }
+
+  void sendEnemyWaves() {
+
+    // wait for next wave or enemy
+    if (nextEnemyTime > gameFrames)
+      return;
+
+    // delay next enemy because there are aleady enouth on screen
+    if (count() == maximum)
+      return;
+
+    //  counter counts global every wave
+    uint8_t currentWaveType = currentWaveCounter % TYPES_OF_WAVES;
+
+    // get the type of the enemy
+    uint8_t enemyType;
+    if (currentWaveType == ENEMY_MIX) {
+
+      // 5 different enemys
+      enemyType = currentEnemysOfWave;
+    } else {
+
+      // 5 of the same kind
+      enemyType = currentWaveType;
+    }
+
+    //Serial.println(String(millis()) + " add Enemy of wave: " + String(currentEnemysOfWave) + " type: " + String(enemyType));
+
+    // add the enemy left to the entry on screen
+    add(rand() % 4 - 8, 22, enemyType);
+
+    // count the numbers of enemys in this wafe
+    currentEnemysOfWave++;
+
+    // set timeouts for next enemy or wave
+    uint16_t waveTimeout;
+    if (currentEnemysOfWave == ENEMYS_IN_WAVE) {
+
+      waveTimeout = NEXT_WAVE_TIMEOUT;
+
+      // reset the enemys counter of the current Wafe
+      currentEnemysOfWave = 0;
+
+      // set type of the next wave
+      if (currentWaveType == TYPES_OF_WAVES - 1) {
+        currentWaveType = 0;
+
+        // change race, this should only be done if no enemy is on the field
+        // TODO maybe wait !!!!!!
+        if (currentEnemysRace < 2) {
+          currentEnemysRace++;
+
+        } else {
+          currentEnemysRace = 0;
+        }
+
+      } else {
+        // increment wave counter
+        if (inPlayingMode(gameMode))
+          currentWaveCounter++;
+
+        // check if game was won!
+        if (currentWaveCounter == MAXIMAL_WAVE)
+          currentWaveCounter = 0;
+
+        // recalculate the hp of the current wave
+        currentWaveHp = getEnemyHp(currentWaveCounter, currentMapDifficulty);
+      }
+
+    } else {
+      waveTimeout = NEXT_ENEMY_TIMEOUT;
+    }
+
+    // write timeout with current millis in global variable
+    nextEnemyTime = waveTimeout + gameFrames;
+  }
+
+  uint8_t count() {
+    uint8_t num = 0;
+
+    for (uint8_t i = 0; i < maximum; i++) {
+      if (isEnemyActive(i))
+        num++;
+    }
+
+    return num;
   }
 
   void add(uint8_t x, uint8_t y, uint8_t type) {
@@ -355,14 +423,16 @@ struct enemyManager {
       setEnemyActive(i);;
       foundSlot = true;
 
-      //Serial.println("add enemy: " + String(i) + " of type: " + String(type));
-
       // set values
       list[i].x = x;
       list[i].y = y;
       list[i].type = type;
-      list[i].health = 100 * 100;
       list[i].frozenState = 0;
+
+      // Serial.println("add enemy: " + String(i) + " of type: " + String(type) + " health:" + String(currentWaveHp));
+
+      // get healt depending on global match progress variables
+      list[i].health = currentWaveHp;
       break;
     }
 
@@ -375,6 +445,9 @@ struct enemyManager {
   void update() {
 
     for (uint8_t i = 0; i < maximum; i++) {
+
+      // send new waves
+      sendEnemyWaves();
 
       // update only active enemys
       if (isEnemyActive(i) == false)

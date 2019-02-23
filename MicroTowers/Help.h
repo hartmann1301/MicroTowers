@@ -74,6 +74,25 @@ uint8_t getyR(uint8_t index) {
   return index / ROWS;
 }
 
+uint16_t getEnemyHp(uint8_t wave, uint8_t mapDifficulty) {
+
+  // minimal value for hp
+  uint16_t hp = 100;
+
+  for (uint8_t i = 1; i < wave + 1; i++) {
+
+    // is scaled to get values from wave:1 170hp to wave:30 32650hp
+    hp += i * 70;
+  }
+
+  // difficulty can be from 10 to 20, where 10 is normal and 20 is double hp
+  hp = (hp / 10) * mapDifficulty;
+
+  //Serial.println("getEnemyHp wave: " + String(wave) + " difficulty: " + String(mapDifficulty) + " is: " + String(hp));
+
+  return hp;
+}
+
 void drawBitmapSlow(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8_t h, uint8_t offset, uint8_t rotation, uint8_t color) {
 
   // return because there is nothing to draw

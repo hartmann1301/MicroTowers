@@ -66,7 +66,7 @@ void setup() {
 #endif
 
   arduboy.begin();
-  arduboy.setFrameRate(GAME_FRAMES);
+  arduboy.setFrameRate(FRAMES_PRO_SEC);
 
  // initialise the managers
  tM.init();
@@ -74,15 +74,8 @@ void setup() {
 
   goToMainMenu();
 
-  eM.add(0, 18, HUMAN_MG);
-  eM.add(40, 18, ANIMAL_RAT);
-  eM.add(60, 10, TWOPOD_LVL0);
-
   // some start tone
   //sound.tone(200, 200, 300, 200);
-
-  //arduboy.display();
-  //delay(99000);
 }
 
 void loop() {
@@ -115,7 +108,7 @@ void loop() {
   mF.setCursor(2, 0);
   //mF.print(gameMode);
 
-  mF.print(pM.count());
+  mF.print(eM.count());
 #endif
 
   arduboy.display();

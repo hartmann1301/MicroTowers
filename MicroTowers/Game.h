@@ -69,6 +69,18 @@ void loadMap(uint8_t mapNumber) {
   // trigger new path finding
   mapChanged = true;
 
+  // set beginning of game variables
+  currentLifePoints = 100;
+  currentWaveCounter = 1;
+
+  currentMapDifficulty = getProgMem(mapDifficulties, mapNumber);
+
+  currentWaveHp = getEnemyHp(currentWaveCounter, currentMapDifficulty);
+   
+  currentEnemysOfWave = 0;
+  currentEnemysRace = 0;
+  nextEnemyTime = 0;
+
   // reset all towers
   tM.init();
 
@@ -139,7 +151,11 @@ void updateGame() {
   mM.drawMap();
 
   if (mapChanged) {
+    // write new cost list with pathfinding algorithm
     mM.findPath();
+
+    // recalculate how much every tower is boosted
+    
   }
 
   tM.update();

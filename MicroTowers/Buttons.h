@@ -243,6 +243,9 @@ void buttonsPlaying() {
     } else if (isCursorAreaType(MAP_TOWER)) {
       gameMode = MODE_PLAYING_TOWER;
 
+    } else if (isCursorAreaType(MAP_FREE)) {
+      setInfoMessage(INFO_JUST_A_HOUSE);
+
     } else {
       // put something is in cursor area message
       setInfoMessage(INFO_BLOCKED_AREA);
@@ -378,7 +381,7 @@ bool skipLongPress() {
 
 void checkNormalTime() {
   // set the global bool, the minus 1 is just to be sure
-  isFastSpeedFrame = (millis() < normalSpeedTime + GAME_FRAME_MS - 1);
+  isFastSpeedFrame = (millis() < normalSpeedTime + MS_PRO_FRAME - 1);
 
   // return in every fast frame
   if (isFastSpeedFrame)

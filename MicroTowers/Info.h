@@ -36,6 +36,9 @@ bool drawInfoMessage() {
   } else if (infoMsgType == INFO_ENTRY_BLOCK) {
     mF.print(F("NO ENTRY BLOCKING"));
     
+  } else if (infoMsgType == INFO_JUST_A_HOUSE) {
+    mF.print(F("JUST A BUILDING"));
+   
   }
 
   return true;
@@ -192,18 +195,18 @@ void drawCoins(uint8_t xPos, uint8_t coins) {
 void drawInfosPlaying() {
 
   // draw heart icon
-  drawBitmapFast(42, yIcon, symbolSet, ICON_WIDTH, SYMBOL_HEART, false);
+  drawBitmapFast(47, yIcon, symbolSet, ICON_WIDTH, SYMBOL_HEART, false);
 
   // draw current life
-  mF.setCursor(50, yText);
-  mF.print(79);
+  mF.setCursor(55, yText);
+  mF.print(currentLifePoints);
 
   // draw wave icon
   drawBitmapFast(82, yIcon, symbolSet, ICON_WIDTH, SYMBOL_WAVE, false);
 
   // draw current life
   mF.setCursor(90, yText);
-  mF.print(11);
+  mF.print(currentWaveCounter);
 }
 
 void drawInfosPlayingMenu() {

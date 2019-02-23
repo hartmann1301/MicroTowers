@@ -24,8 +24,8 @@ PS2X ps2x;
 Arduboy2Base arduboy;
 ArduboyTones sound(arduboy.audio.enabled);
 
-#define GAME_FRAMES     30
-#define GAME_FRAME_MS  (1000 / GAME_FRAMES)
+#define FRAMES_PRO_SEC     30
+#define MS_PRO_FRAME      (1000 / FRAMES_PRO_SEC)
 
 void getButtons() {
 #ifdef ESP8266
@@ -60,7 +60,15 @@ void getButtons() {
 
 #define TOWER_LEVEL_MAX     3
 
-#define ICON_HEIGHT         7  
+#define ENEMYS_IN_WAVE      5
+#define TYPES_OF_WAVES      6
+#define MAXIMAL_WAVE        30
+
+// in gameFrames to work in fast mode
+#define NEXT_ENEMY_TIMEOUT  FRAMES_PRO_SEC
+#define NEXT_WAVE_TIMEOUT   FRAMES_PRO_SEC * 8
+
+#define ICON_HEIGHT         7
 #define ICON_WIDTH          ICON_HEIGHT
 
 #define INT8_MIN            -128
@@ -99,10 +107,20 @@ bool isFramesMod2;
 uint32_t nextButtonInput = 0;
 uint32_t gameFrames = 0;
 
+uint8_t currentMapDifficulty;
+uint16_t currentWaveHp;
+
+uint8_t currentLifePoints;
+uint8_t currentWaveCounter = 1;
+
+uint8_t currentEnemysOfWave = 0;
+uint8_t currentEnemysRace = 0;
+uint32_t nextEnemyTime = 0;
+
 uint32_t normalSpeedTime = 0;
 bool isFastSpeedFrame = false;
 
-int8_t stateButtonA = 0; 
+int8_t stateButtonA = 0;
 int8_t stateButtonB = 0;
 
 uint8_t xCursor = 1;
@@ -126,14 +144,40 @@ uint8_t currentCoins = 189;
 enum {
   MODE_MAINMENU = 0,
   MODE_MAPS_LIST,
-  MODE_PLAYING_INFO,  
+  MODE_PLAYING_INFO,
   MODE_PLAYING,
   MODE_PLAYING_BUILD,
   MODE_PLAYING_TOWER,
   MODE_EDITOR,
   MODE_EDITOR_MENU,
-  MODE_OPTIONS,  
+  MODE_OPTIONS,
   MODE_CREDITS
+};
+
+enum {
+  TOWER_GATLING = 0,
+  TOWER_CANNON,
+  TOWER_FROST,
+  TOWER_RAILGUN,
+  TOWER_FLAME,
+  TOWER_LASER,
+  TOWER_SHOCK,
+  TOWER_SUPPORT
+};
+
+enum {
+  ENEMY_TYPE_CYBORG = 0,
+  ENEMY_TYPE_TWOPOD,
+  ENEMY_TYPE_MONSTER
+};
+
+enum {
+  ENEMY_IS_DEFAULT = 0,
+  ENEMY_IS_FAST,
+  ENEMY_RESITS_BULLETS,
+  ENEMY_RESITS_LASERS,
+  ENEMY_RESITS_AOES,
+  ENEMY_MIX
 };
 
 enum {
@@ -146,51 +190,41 @@ enum {
 enum {
   INFO_FORBIDDEN_BUILD = 0,
   INFO_BLOCKED_AREA,
-  INFO_ENTRY_BLOCK
+  INFO_ENTRY_BLOCK,
+  INFO_JUST_A_HOUSE
 };
 
 enum {
   GO_RIGHT = 0,
   GO_UP,
-  GO_LEFT,  
+  GO_LEFT,
   GO_DOWN,
   NO_DIRECTION
 };
 
 enum {
   SYMBOL_CURSOR1 = 0,
-  SYMBOL_CURSOR2,  
+  SYMBOL_CURSOR2,
   SYMBOL_COIN,
   SYMBOL_HEART,
   SYMBOL_WAVE,
-  SYMBOL_UPGRADE,  
+  SYMBOL_UPGRADE,
   SYMBOL_INFO,
   SYMBOL_SELL,
   SYMBOL_FASTMODE
 };
 
 enum {
-  EDITOR_DELETE = 0,  
+  EDITOR_DELETE = 0,
   EDITOR_HQ,
   EDITOR_ROCK,
   EDITOR_TREE
 };
 
 enum {
-  TOWER_MENU_UPGRADE = 0,  
+  TOWER_MENU_UPGRADE = 0,
   TOWER_MENU_INFO,
   TOWER_MENU_SELL
-};
-
-enum {
-  TOWER_GATLING = 0,
-  TOWER_CANNON,
-  TOWER_FROST,
-  TOWER_RAILGUN,    
-  TOWER_FLAME,
-  TOWER_LASER,   
-  TOWER_SHOCK,  
-  TOWER_SUPPORT
 };
 
 #endif

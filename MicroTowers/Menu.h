@@ -5,7 +5,7 @@ void drawMapBorders() {
   // some fixed values just for better code reading
   const uint8_t xPos = 122;
   const uint8_t yEnd = 55;
-  
+
   // draw left and bottom lines
   arduboy.drawLine(0, 0, 0, 24, BLACK);
   arduboy.drawLine(0, 30, 0, 54, BLACK);
@@ -56,6 +56,21 @@ void drawMapInfos(uint8_t lvl) {
   mF.print(lvl * 71 + 13);
 }
 
+void drawCenterMapHighlighter() {
+
+  const uint8_t xPosStart = 72;
+  const uint8_t xPosEnd = xPosStart + 7;
+
+  const uint8_t yEntryStart = 30;
+  const uint8_t yEntryEnd = yEntryStart + 4;
+
+  arduboy.drawLine(xPosStart, 0, xPosStart, yEntryStart, BLACK);
+  arduboy.drawLine(xPosStart, yEntryEnd, xPosStart, HEIGHT, BLACK);
+
+  arduboy.drawLine(xPosStart, yEntryStart, xPosEnd, yEntryStart, BLACK);
+  arduboy.drawLine(xPosStart, yEntryEnd, xPosEnd, yEntryEnd, BLACK);
+}
+
 void drawMapsList() {
   // create a bigger index value for scrolling
   const uint8_t mapHeight = 23;
@@ -67,6 +82,9 @@ void drawMapsList() {
   // draw all the content on left side, score usw.
   drawMapInfos(indexMapsList);
 
+  // draw little frame thing to highlight the center map
+  drawCenterMapHighlighter();
+
   // try to draw all of the menu items if they are on the screen or not
   for (int8_t i = 0; i < MAPSLIST_ITEMS; i++) {
 
@@ -77,7 +95,7 @@ void drawMapsList() {
     if (yOffset < -mapHeight || yOffset > HEIGHT)
       continue;
 
-    mM.drawMapPreview(72, yOffset, i);
+    mM.drawMapPreview(80, yOffset, i);
   }
 }
 
@@ -158,6 +176,12 @@ void drawPlayingTowerMenu() {
     // adds more if current index is active
     setVeritcalOffset(yPos, isActiveIndex);
   }
+
+  // get list index of currently selected tower
+  uint8_t towerIndex = tM.getTowerAt(xCursor, yCursor);
+
+  // draw the range of the current Tower
+  tM.list[towerIndex].drawRange();
 }
 
 

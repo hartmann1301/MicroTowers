@@ -181,17 +181,6 @@ struct projectileManager {
     return 0xff;
   }
 
-  uint8_t count() {
-    uint8_t num = 0;
-
-    for (uint8_t i = 0; i < maximum; i++) {
-      if (isProjectileActive(i))
-        num++;
-    }
-
-    return num;
-  }
-
   void update() {
 
     for (uint8_t i = 0; i < maximum; i++) {
