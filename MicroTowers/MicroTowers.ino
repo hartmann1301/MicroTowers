@@ -36,6 +36,8 @@ projectileManager pM;
 #include "Map.h"
 mapMangager mM;
 
+#include "Info.h"
+
 #include "Enemys.h"
 enemyManager eM;
 
@@ -43,7 +45,7 @@ enemyManager eM;
 towerManager tM;
 
 #include "Eeprom.h"
-#include "Info.h"
+
 #include "Menu.h"
 #include "Game.h"
 #include "Buttons.h"
@@ -98,7 +100,7 @@ void loop() {
   if (gameMode != MODE_MAPS_LIST)
     updateGame();
 
-  drawMenus();
+  mainScheduler();
 
 #ifdef DEBUG_FRAME_TIME
   // pirnt time for a frame to screen

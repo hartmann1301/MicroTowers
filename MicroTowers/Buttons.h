@@ -1,9 +1,14 @@
 #ifndef Buttons_h
 #define Buttons_h
 
+void getButtons() {
+#ifdef ESP8266
+  // this function is called inside arduboy whenever buttonStates() is called
+  arduboy.setExternalButtons(ps2x.getArduboyButtons());
+#endif
+}
 
 void monitorButtonState(int8_t &button, bool isPressed) {
-
   if (isPressed) {
     if (button < 0)
       button = 1;
@@ -129,7 +134,14 @@ bool isCursorAreaType(const uint8_t type) {
 }
 
 void goToMainMenu() {
+  // set main game mode
   gameMode = MODE_MAINMENU;
+
+  // set wave to finish so the auto sender can start a wave
+  sendWaveStatus = WAVE_FINISHED;
+
+  // delete all existing enemys on map
+  eM.init();
 
   // the loaded map is main menu background and playable map
   loadMap(4);
@@ -214,6 +226,10 @@ void buttonsMapsList() {
 }
 
 void buttonsPlaying() {
+
+  // trigger to send next wave
+  if (arduboy.justReleased(A_BUTTON) && sendWaveStatus == WAVE_FINISHED)
+    sendWaveStatus = WAVE_START;
 
   if (arduboy.justReleased(B_BUTTON)) {
 

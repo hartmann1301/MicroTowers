@@ -69,20 +69,21 @@ void loadMap(uint8_t mapNumber) {
   // trigger new path finding
   mapChanged = true;
 
-  // set beginning of game variables
+  // set defaults of in level variables
   currentLifePoints = 100;
-  currentWaveCounter = 1;
+  waveCounter = 0;
+  nextEnemyFrame = 0;
 
+  // if playing show message that wave can be triggered
+  if (inPlayingMode(gameMode))
+    setInfoMessage(INFO_SEND_NEXT_WAVE);
+
+  // TODO: change this
   currentMapDifficulty = getProgMem(mapDifficulties, mapNumber);
 
-  currentWaveHp = getEnemyHp(currentWaveCounter, currentMapDifficulty);
-   
-  currentEnemysOfWave = 0;
-  currentEnemysRace = 0;
-  nextEnemyTime = 0;
-
-  // reset all towers
+  // reset all towers and enemys
   tM.init();
+  eM.init();
 
   for (uint8_t n = 0; n < NODES; n++) {
 
@@ -146,6 +147,72 @@ void checkHits() {
   }
 }
 
+void mainMenuWaveSender() {
+
+  // set counter to zero to always send the first wave
+  if (waveCounter != 1)
+    waveCounter = 1;
+
+  // start sending a new wave if the last is done
+  if (sendWaveStatus == WAVE_FINISHED)
+    sendWaveStatus = WAVE_START;
+}
+
+void mainScheduler() {
+
+  if (gameMode != MODE_MAPS_LIST) {
+
+    // the bottom line with all the hints
+    drawInfoLine();
+
+    // function will decide if it needs to be cut for menus
+    drawMapBorders();
+  }
+
+  if (gameMode == MODE_MAINMENU) {
+    drawMainMenu();
+
+    mainMenuWaveSender();
+
+  } else if (gameMode == MODE_MAPS_LIST) {
+    drawMapsList();
+
+  } else if (inPlayingMode(gameMode)) {
+
+    if (gameMode == MODE_PLAYING) {
+      shiftMenuOut();
+
+    } else if (gameMode == MODE_PLAYING_BUILD) {
+      drawPlayingBuildMenu();
+
+    } else if (gameMode == MODE_PLAYING_TOWER) {
+      drawPlayingTowerMenu();
+
+    } else if (gameMode == MODE_PLAYING_INFO) {
+      //TODO:
+    }
+
+  } else if (inEditorMode(gameMode)) {
+
+    if (gameMode == MODE_EDITOR) {
+      shiftMenuOut();
+
+    } else if (gameMode == MODE_EDITOR_MENU) {
+      drawEditorMenu();
+    }
+
+  } else if (gameMode == MODE_OPTIONS) {
+    drawOptionsMenu();
+
+  } else if (gameMode == MODE_CREDITS) {
+    drawCredits();
+  }
+
+  // must be drawed at least because of the white parts
+  drawCursor();
+}
+
+
 void updateGame() {
 
   mM.drawMap();
@@ -155,7 +222,7 @@ void updateGame() {
     mM.findPath();
 
     // recalculate how much every tower is boosted
-    
+
   }
 
   tM.update();

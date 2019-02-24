@@ -27,13 +27,6 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define FRAMES_PRO_SEC     30
 #define MS_PRO_FRAME      (1000 / FRAMES_PRO_SEC)
 
-void getButtons() {
-#ifdef ESP8266
-  // this function is called inside arduboy whenever buttonStates() is called
-  arduboy.setExternalButtons(ps2x.getArduboyButtons());
-#endif
-}
-
 #define COLUMNS             9
 #define ROWS                20
 #define NODES               (ROWS*COLUMNS)
@@ -64,13 +57,13 @@ void getButtons() {
 #define TYPES_OF_WAVES      6
 #define MAXIMAL_WAVE        30
 
-// in gameFrames to work in fast mode
+// in gameFrames to work also in fast mode
 #define NEXT_ENEMY_TIMEOUT  FRAMES_PRO_SEC
-#define NEXT_WAVE_TIMEOUT   FRAMES_PRO_SEC * 8
 
 #define ICON_HEIGHT         7
 #define ICON_WIDTH          ICON_HEIGHT
 
+// min and max value of a int8_t
 #define INT8_MIN            -128
 #define INT8_MAX            127
 
@@ -80,12 +73,35 @@ void getButtons() {
 #define ROT180 2
 #define ROTCW 3
 
-// this buffer is for the drawing function
+// this pointer to the display buffer is for my drawing functions
 uint8_t* buffer = arduboy.getBuffer();
 
+// holds the main status of this game
+enum {
+  MODE_MAINMENU = 0,
+  MODE_MAPS_LIST,
+  MODE_PLAYING_INFO,
+  MODE_PLAYING,
+  MODE_PLAYING_BUILD,
+  MODE_PLAYING_TOWER,
+  MODE_EDITOR,
+  MODE_EDITOR_MENU,
+  MODE_OPTIONS,
+  MODE_CREDITS
+};
 uint8_t gameMode;
 
+// will be indecremted everytime it is shown
 uint8_t infoMsgTimeout = 0;
+
+// stores what kind of message is shown in the info bar
+enum {
+  INFO_FORBIDDEN_BUILD = 0,
+  INFO_BLOCKED_AREA,
+  INFO_ENTRY_BLOCK,
+  INFO_JUST_A_HOUSE,
+  INFO_SEND_NEXT_WAVE
+};
 uint8_t infoMsgType = 0;
 
 // in this array the look and the behaviour of the current map is stored
@@ -105,17 +121,46 @@ bool mapChanged = true;
 bool isFramesMod2;
 
 uint32_t nextButtonInput = 0;
+
+// every frame is counted, is used for "every n frames" functions and for fast forward
 uint32_t gameFrames = 0;
 
-uint8_t currentMapDifficulty;
+// is calculated at he start of a wave and stored to draw the hp lines over enemys easier
 uint16_t currentWaveHp;
 
-uint8_t currentLifePoints;
-uint8_t currentWaveCounter = 1;
+// when a map is loaded the difficultiy is stored here and used for enemy hp calculations
+uint8_t currentMapDifficulty;
 
-uint8_t currentEnemysOfWave = 0;
-uint8_t currentEnemysRace = 0;
-uint32_t nextEnemyTime = 0;
+// while playing in a level the life points where decremented when an enemy reaches your hq
+uint8_t currentLifePoints;
+
+// counts the waves in a level from 1 to 30 
+uint8_t waveCounter = 0;
+
+// your coins to buy new towers or upgrade existing towers, could overflow!! (uint16_t)
+uint8_t currentCoins = 189;
+
+// on wave start ENEMYS_IN_WAVE is loaded to the variable and than decremented
+int8_t enemysOfWave = 0;
+
+// every wave needs to be started by the player, see enum
+enum {
+  WAVE_START = 0,
+  WAVE_ACTIVE,
+  WAVE_FINISHED
+};
+uint8_t sendWaveStatus = WAVE_FINISHED;
+
+// stores how the current enemys are looking
+enum {
+  ENEMY_TYPE_CYBORG = 0,
+  ENEMY_TYPE_TWOPOD,
+  ENEMY_TYPE_MONSTER
+};
+uint8_t currentEnemysType = ENEMY_TYPE_CYBORG;
+
+// while a wave is active this variable stores the gameFrames until next enemy is stored
+uint32_t nextEnemyFrame = 0;
 
 uint32_t normalSpeedTime = 0;
 bool isFastSpeedFrame = false;
@@ -138,21 +183,10 @@ int16_t indexMapsListDelayed = 0;
 
 //eeprom data
 uint8_t unlockedMaps = 5;
-uint8_t currentCoins = 189;
+
 //
 
-enum {
-  MODE_MAINMENU = 0,
-  MODE_MAPS_LIST,
-  MODE_PLAYING_INFO,
-  MODE_PLAYING,
-  MODE_PLAYING_BUILD,
-  MODE_PLAYING_TOWER,
-  MODE_EDITOR,
-  MODE_EDITOR_MENU,
-  MODE_OPTIONS,
-  MODE_CREDITS
-};
+
 
 enum {
   TOWER_GATLING = 0,
@@ -163,12 +197,6 @@ enum {
   TOWER_LASER,
   TOWER_SHOCK,
   TOWER_SUPPORT
-};
-
-enum {
-  ENEMY_TYPE_CYBORG = 0,
-  ENEMY_TYPE_TWOPOD,
-  ENEMY_TYPE_MONSTER
 };
 
 enum {
@@ -185,13 +213,6 @@ enum {
   MAP_TOWER,
   MAP_ROCK,
   MAP_NOBUILD,
-};
-
-enum {
-  INFO_FORBIDDEN_BUILD = 0,
-  INFO_BLOCKED_AREA,
-  INFO_ENTRY_BLOCK,
-  INFO_JUST_A_HOUSE
 };
 
 enum {

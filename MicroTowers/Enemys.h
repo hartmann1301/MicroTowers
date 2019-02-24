@@ -236,7 +236,7 @@ struct enemy {
 
     // twopods are a bit to high, so minus one pixel of yPos
     int8_t yPos = y;
-    if (currentEnemysRace == ENEMY_TYPE_TWOPOD)
+    if (currentEnemysType == ENEMY_TYPE_TWOPOD)
       yPos--;
 
     uint16_t oneHealthPixel = currentWaveHp / 7;
@@ -260,7 +260,7 @@ struct enemy {
     uint8_t w = 6;
 
     const uint8_t *img;
-    if (currentEnemysRace == ENEMY_TYPE_CYBORG) {
+    if (currentEnemysType == ENEMY_TYPE_CYBORG) {
       img = enemyCyborgs;
 
     } else if (type <= ENEMY_TYPE_TWOPOD) {
@@ -324,80 +324,83 @@ struct enemyManager {
     }
   }
 
-  void sendEnemyWaves() {
+  void sendWaves() {
 
-    // wait for next wave or enemy
-    if (nextEnemyTime > gameFrames)
+    // return because sending waves is not activated yet or done
+    if (sendWaveStatus == WAVE_FINISHED)
       return;
 
-    // delay next enemy because there are aleady enouth on screen
-    if (count() == maximum)
+    // return because not frame for next enemy yet
+    if (nextEnemyFrame > gameFrames)
       return;
 
-    //  counter counts global every wave
-    uint8_t currentWaveType = currentWaveCounter % TYPES_OF_WAVES;
+    // is done once when the wave was started
+    if (sendWaveStatus == WAVE_START) {
+
+      // sets how many enemys will be sent in this wave
+      enemysOfWave = ENEMYS_IN_WAVE;
+
+      // increment the levels waves
+      if (waveCounter < MAXIMAL_WAVE)
+        waveCounter++;
+
+      // recalculate the hp of the current wave
+      currentWaveHp = getEnemyHp(waveCounter, currentMapDifficulty);
+
+      // to skip this in the next call
+      sendWaveStatus = WAVE_ACTIVE;
+    }
+
+    //  holds what kinds of enemys will be sent, see ENEMYS enum
+    uint8_t currentWaveType = waveCounter % TYPES_OF_WAVES;
+
+    // wave if over if no enemy is left to spawn and map is empty
+    if (count() == 0 && enemysOfWave == 0) {
+      sendWaveStatus = WAVE_FINISHED;
+
+      // if playing show message that next wave can be triggered
+      if (inPlayingMode(gameMode))
+        setInfoMessage(INFO_SEND_NEXT_WAVE);
+
+      // if 6 waves passed than it is time to change the race
+      if (currentWaveType == TYPES_OF_WAVES - 1) {
+
+        // change race, this should only be done if no enemy is on the field
+        if (currentEnemysType < 2) {
+          currentEnemysType++;
+
+        } else {
+          currentEnemysType = 0;
+        }
+      }
+    }
+
+    // return because there is no enemy left to spawn
+    if (enemysOfWave == 0)
+      return;
+
+    // decrement counter because one enemy will be sent in this call
+    enemysOfWave--;
 
     // get the type of the enemy
     uint8_t enemyType;
     if (currentWaveType == ENEMY_MIX) {
 
-      // 5 different enemys
-      enemyType = currentEnemysOfWave;
+      // add 5 different enemys
+      enemyType = enemysOfWave;
     } else {
 
-      // 5 of the same kind
+      // add 5 of the same kind
       enemyType = currentWaveType;
     }
 
-    //Serial.println(String(millis()) + " add Enemy of wave: " + String(currentEnemysOfWave) + " type: " + String(enemyType));
+    Serial.println("add Enemy nr: " + String(enemysOfWave) + " type: " + String(enemyType) + " waveCounter " + String(waveCounter));
 
     // add the enemy left to the entry on screen
     add(rand() % 4 - 8, 22, enemyType);
 
-    // count the numbers of enemys in this wafe
-    currentEnemysOfWave++;
-
-    // set timeouts for next enemy or wave
-    uint16_t waveTimeout;
-    if (currentEnemysOfWave == ENEMYS_IN_WAVE) {
-
-      waveTimeout = NEXT_WAVE_TIMEOUT;
-
-      // reset the enemys counter of the current Wafe
-      currentEnemysOfWave = 0;
-
-      // set type of the next wave
-      if (currentWaveType == TYPES_OF_WAVES - 1) {
-        currentWaveType = 0;
-
-        // change race, this should only be done if no enemy is on the field
-        // TODO maybe wait !!!!!!
-        if (currentEnemysRace < 2) {
-          currentEnemysRace++;
-
-        } else {
-          currentEnemysRace = 0;
-        }
-
-      } else {
-        // increment wave counter
-        if (inPlayingMode(gameMode))
-          currentWaveCounter++;
-
-        // check if game was won!
-        if (currentWaveCounter == MAXIMAL_WAVE)
-          currentWaveCounter = 0;
-
-        // recalculate the hp of the current wave
-        currentWaveHp = getEnemyHp(currentWaveCounter, currentMapDifficulty);
-      }
-
-    } else {
-      waveTimeout = NEXT_ENEMY_TIMEOUT;
-    }
-
-    // write timeout with current millis in global variable
-    nextEnemyTime = waveTimeout + gameFrames;
+    // set timeouts for next enemy
+    nextEnemyFrame = NEXT_ENEMY_TIMEOUT + gameFrames;
   }
 
   uint8_t count() {
@@ -447,7 +450,7 @@ struct enemyManager {
     for (uint8_t i = 0; i < maximum; i++) {
 
       // send new waves
-      sendEnemyWaves();
+      sendWaves();
 
       // update only active enemys
       if (isEnemyActive(i) == false)

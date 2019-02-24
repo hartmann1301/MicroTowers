@@ -39,6 +39,9 @@ bool drawInfoMessage() {
   } else if (infoMsgType == INFO_JUST_A_HOUSE) {
     mF.print(F("JUST A BUILDING"));
    
+  } else if (infoMsgType == INFO_SEND_NEXT_WAVE) {
+    mF.print(F("A: TO SEND WAVE"));
+   
   }
 
   return true;
@@ -206,7 +209,7 @@ void drawInfosPlaying() {
 
   // draw current life
   mF.setCursor(90, yText);
-  mF.print(currentWaveCounter);
+  mF.print(waveCounter);
 }
 
 void drawInfosPlayingMenu() {
