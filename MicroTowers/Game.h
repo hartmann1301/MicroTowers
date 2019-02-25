@@ -2,6 +2,8 @@
 #define Gameplay_h
 
 void tryToBuildTower() {
+  Serial.println("tryToBuildTower()");
+  
   // get the needed money
   uint8_t price = getProgMem(towerPrices, indexBuildMenu);
 
@@ -27,8 +29,10 @@ void tryToUpgradeTower() {
   if (currentLevel == TOWER_LEVEL_MAX)
     return;
 
+  uint8_t type = tM.list[index].getType();
+
   // get the needed money
-  uint8_t price = getProgMem(towerPrices, tM.list[index].getType());
+  uint8_t price = getProgMem(towerPrices, type);
 
   // return because player has to less money
   if (currentCoins < price)
@@ -39,6 +43,10 @@ void tryToUpgradeTower() {
 
   // write incremented level back
   tM.list[index].setLevel(currentLevel + 1);
+
+  // recalculate the boosts
+  if (type == TOWER_SUPPORT)
+    tM.setBoosts();
 
   // if update was done return to game
   gameMode = MODE_PLAYING;
@@ -85,6 +93,7 @@ void loadMap(uint8_t mapNumber) {
   tM.init();
   eM.init();
 
+  // get 2 bits of map data and store each in 8 bits mapCompositon array where it can be modified
   for (uint8_t n = 0; n < NODES; n++) {
 
     // reads from program space or eeprom
@@ -97,6 +106,7 @@ void loadMap(uint8_t mapNumber) {
       //Serial.println("headquarterPosition is: " + String(headquarterPosition));
     }
 
+    // write to mapCompositon
     mM.setNode(n, data);
   }
 }
@@ -149,10 +159,6 @@ void checkHits() {
 
 void mainMenuWaveSender() {
 
-  // set counter to zero to always send the first wave
-  if (waveCounter != 1)
-    waveCounter = 1;
-
   // start sending a new wave if the last is done
   if (sendWaveStatus == WAVE_FINISHED)
     sendWaveStatus = WAVE_START;
@@ -160,7 +166,7 @@ void mainMenuWaveSender() {
 
 void mainScheduler() {
 
-  if (gameMode != MODE_MAPS_LIST) {
+  if (!inMapsListMode(gameMode)) {
 
     // the bottom line with all the hints
     drawInfoLine();
@@ -174,8 +180,11 @@ void mainScheduler() {
 
     mainMenuWaveSender();
 
-  } else if (gameMode == MODE_MAPS_LIST) {
-    drawMapsList();
+  } else if (gameMode == MODE_MAPS_CAMPAIN) {
+    drawMapsListCampain();
+
+  } else if (gameMode == MODE_MAPS_EDITOR) {
+    drawMapsListEditor();
 
   } else if (inPlayingMode(gameMode)) {
 
@@ -222,7 +231,7 @@ void updateGame() {
     mM.findPath();
 
     // recalculate how much every tower is boosted
-
+    tM.setBoosts();
   }
 
   tM.update();

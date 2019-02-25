@@ -26,7 +26,7 @@ const uint8_t towerReloadTimes [] PROGMEM = {
 
 // in pixels but will always be multiplyed by 2 and an offset added
 const uint8_t towerBasicRanges [] PROGMEM = {
-  4,  6,  3,  3,  2,  10,  1,  5
+  4,  6,  3,  3,  2,  10,  1,  3
 };
 
 // these values will be added with every extra level
@@ -41,6 +41,15 @@ const int8_t sektorStartX [] PROGMEM = {
 const int8_t sektorStartY [] PROGMEM = {
   0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3,  3,  3,  2,  1
 };
+
+// those help to find index next to tower
+const int8_t xPostionsNear [] PROGMEM = {
+  -1,  0,  1, -2,  2, -2,  2, -2,  2, -1,  0,  1
+};                                            
+
+const int8_t yPostionsNear [] PROGMEM = {
+  -2, -2, -2, -1, -1,  0,  0,  1,  1,  2,  2,  2
+};                                               
 
 // 'allTowers', 56x104px
 const unsigned char allTowers [] PROGMEM = {
@@ -96,7 +105,6 @@ const unsigned char allTowers [] PROGMEM = {
 const uint8_t mapDifficulties [] PROGMEM = {
   10,  10,  10,  10,  10,  10,  10,  10,  10,  10
 };
-
 
 // 'allMaps'
 const unsigned char allMaps [] PROGMEM = {

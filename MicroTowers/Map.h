@@ -71,12 +71,21 @@ struct mapMangager {
 
     // read data for 4 bytes, from eeprom or program space
     uint8_t rawData;
-    if (mapNumber == 0) {
-      // read from global map array because map 0 was copied here from eeprom
-      rawData = mapComposition[index];
+    if (gameMode == MODE_MAPS_EDITOR || gameMode == MODE_EDITOR) {
+
+      if (mapNumber == 0) {
+        // read from global map array because map 0 was copied here from eeprom
+        rawData = mapComposition[index];
+
+      } else {
+        // read from global costs array because map 1-4 were copied here from eeprom
+        rawData = mapCosts[index + (mapNumber - 1) * NODES_COMPRESSED];
+      }
 
     } else {
+      // read data from huge pgm space map array
       rawData = pgm_read_byte(allMaps + index + mapNumber * NODES_COMPRESSED);
+
     }
 
     uint8_t shifts = getShifts(node);
@@ -274,18 +283,18 @@ struct mapMangager {
         uint8_t mapTop     = getCurrentMapNode(getIndex(xR, yR - 1));
         uint8_t mapLeftTop = getCurrentMapNode(getIndex(xR - 1, yR - 1));
 
-        // check if they are all rocks                
+        // check if they are all rocks
         if (currentMap == MAP_ROCK && mapLeft == MAP_ROCK && mapTop == MAP_ROCK && mapLeftTop == MAP_ROCK) {
 
           // get starting coordingates
           uint8_t xHouse = xPos - 5;
           uint8_t yHouse = yPos - 5;
-          
+
           // clear map at this position
           arduboy.fillRect(xHouse, yHouse, 11, 11, WHITE);
 
           // draw variously one of two houses depending on index
-          drawBitmapSlow(xHouse, yHouse, mapHouses, 11, 11, index % 2, 0, BLACK);             
+          drawBitmapSlow(xHouse, yHouse, mapHouses, 11, 11, index % 2, 0, BLACK);
         }
       }
     }

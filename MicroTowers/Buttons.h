@@ -137,6 +137,9 @@ void goToMainMenu() {
   // set main game mode
   gameMode = MODE_MAINMENU;
 
+  // fast forward is not needed in main menu
+  isNormalSpeed = true;
+
   // set wave to finish so the auto sender can start a wave
   sendWaveStatus = WAVE_FINISHED;
 
@@ -165,20 +168,15 @@ void buttonsMainMenu() {
   if (arduboy.justReleased(A_BUTTON)) {
     switch (indexMainMenu) {
       case 0:
-        gameMode = MODE_MAPS_LIST;
-
-        // load editor map from eeprom for little map preview
-        loadMapFromEEPROM();
+        gameMode = MODE_MAPS_CAMPAIN;
 
         break;
       case 1:
-        gameMode = MODE_EDITOR;
+        gameMode = MODE_MAPS_EDITOR;
 
-        // load editor map from eeprom to modify it
-        loadMapFromEEPROM();
+        // load editor maps from eeprom to ram array for preview
+        loadMapsFromEEPROM();
 
-        // because the editor menu is using the same index
-        indexBuildMenu = 0;
         break;
       case 2:
         gameMode = MODE_OPTIONS;
@@ -197,8 +195,7 @@ void buttonsMainMenu() {
   setCursorTimeout();
 }
 
-void buttonsMapsList() {
-  // a and b Button
+void buttonsMapsCampain() {
 
   // go to next mode
   if (arduboy.justReleased(A_BUTTON)) {
@@ -206,21 +203,44 @@ void buttonsMapsList() {
     gameMode = MODE_PLAYING;
 
     // put the current map from pgm space to mapComposition array
-    loadMap(indexMapsList);
-  }
-
-  // go back to main menu
-  if (arduboy.justReleased(B_BUTTON)) {
-
-    goToMainMenu();
-
-    // TODO maybe load the main menu map
+    loadMap(indexMapsCampain);
   }
 
   if (isTimeoutActive())
     return;
 
-  checkUpDown(indexMapsList, min(unlockedMaps, MAPSLIST_ITEMS));
+  checkUpDown(indexMapsCampain, min(unlockedMaps, MAPS_IN_CAMPAIN));
+
+  setCursorTimeout();
+}
+
+void buttonsMapsEditor() {
+
+  // play
+  if (arduboy.justReleased(A_BUTTON)) {
+
+    gameMode = MODE_PLAYING;
+
+    // put the current map from pgm space to mapComposition array
+    loadMap(indexMapsEditor);
+  }
+
+  // edit
+  if (arduboy.justReleased(RIGHT_BUTTON)) {
+
+    gameMode = MODE_EDITOR;
+
+    // because the editor menu is using the same index but is only 4 long
+    indexBuildMenu = 0;
+
+    // put the current map from pgm space to mapComposition array
+    loadMap(indexMapsEditor);
+  }
+
+  if (isTimeoutActive())
+    return;
+
+  checkUpDown(indexMapsEditor, EDITOR_MAP_SLOTS);
 
   setCursorTimeout();
 }
@@ -233,14 +253,13 @@ void buttonsPlaying() {
 
   if (arduboy.justReleased(B_BUTTON)) {
 
-    // check if cursor area is free to build
+    // check if cursor is right in front of the entry for enemys
     if (xCursor == 0 && (yCursor == 3 || yCursor == 4)) {
-      // put something is in cursor area message
       setInfoMessage(INFO_ENTRY_BLOCK);
 
     } else if (isCursorAreaType(MAP_FREE)) {
 
-      // put add some tower to the current cursor position
+      // add some test tower to the current cursor position
       tM.add(xCursor, yCursor, 0);
 
       // check if it is allowed to build here
@@ -281,7 +300,7 @@ void buttonsPlayingMenuBuild() {
     gameMode = MODE_PLAYING;
 
   if (isLongPressed(stateButtonB))
-    gameMode = MODE_MAPS_LIST;
+    gameMode = MODE_MAPS_CAMPAIN;
 
   if (isTimeoutActive())
     return;
@@ -334,15 +353,13 @@ void buttonsEditor() {
     gameMode = MODE_EDITOR_MENU;
   }
 
+#ifdef PRINT_EDITOR_MAP
   // this is to create the maps
   if (isLongPressed(stateButtonA))
-    saveMapToEEPROM();
+    saveMapToEEPROM(indexMapsEditor);
+#endif
 
   moveCursor();
-}
-
-void clearEditorMap() {
-
 }
 
 void buttonsEditorMenu() {
@@ -381,17 +398,34 @@ void checkLongPress(int8_t &pressTime) {
   pressTime = INT8_MAX;
 
   //Serial.println(String(millis()) + " found long press");
+  foundLongPress = true;
 }
 
-bool skipLongPress() {
+void manipulateLongPress() {
+   
   // check if one of the states is max, which means longpress is active
   if (stateButtonA != INT8_MAX && stateButtonB != INT8_MAX)
-    return false;
+    return;
 
   // manipulate the button state so longpress will be reseted
   stateButtonA = 1;
   stateButtonB = 1;
+}
 
+bool skipLongPress() {
+
+  // return because there was no long press
+  if (!foundLongPress)
+    return false; 
+
+  // return because there is still a button pressed
+  if (foundLongPress && (stateButtonA > 0 || stateButtonB > 0))
+    return false; 
+
+  // reset global var
+  foundLongPress = false;
+
+  //Serial.println("skip");
   return true;
 }
 
@@ -413,7 +447,12 @@ void checkButtons() {
   // keep track how long a button is held or released
   monitorButtons();
 
-  // ignore this frame because last one was a long press
+  // this allows multiple longpress without releasing the button
+  manipulateLongPress();
+
+  //Serial.println(String(millis()) + " checkButtons() states a:" + String(stateButtonA) + " b:" + String(stateButtonB));
+
+  // ignore this frame because last one was a long press, to aviod justReleased functions 
   if (skipLongPress())
     return;
 
@@ -424,8 +463,17 @@ void checkButtons() {
   if (gameMode == MODE_MAINMENU) {
     buttonsMainMenu();
 
-  } else if (gameMode == MODE_MAPS_LIST) {
-    buttonsMapsList();
+  } else if (inMapsListMode(gameMode)) {
+
+    // go back to main menu
+    if (arduboy.justReleased(B_BUTTON))
+      goToMainMenu();
+
+    if (gameMode == MODE_MAPS_CAMPAIN)
+      buttonsMapsCampain();
+
+    if (gameMode == MODE_MAPS_EDITOR)
+      buttonsMapsEditor();
 
   } else if (inPlayingMode(gameMode)) {
 
@@ -456,7 +504,7 @@ void checkButtons() {
     // is global in editor to go back to main menu
     if (isLongPressed(stateButtonB)) {
       // also generate and print map array via serial interface
-      saveMapToEEPROM();
+      saveMapToEEPROM(indexMapsEditor);
 
       goToMainMenu();
     }

@@ -437,7 +437,60 @@ struct towerManager {
       if (list[i].index == mapIndex)
         return i;
     }
-    return 0;
+
+    // return did not find a tower
+    return NO_INDEX;
+  }
+
+  void setBoosts() {
+
+    // delete the last boost values
+    for (uint8_t i = 0; i < maximum; i++) {
+      list[i].boost = 0;
+    }
+
+    for (uint8_t i = 0; i < maximum; i++) {
+
+      if (isTowerActive(i) == false)
+        continue;
+
+      if (list[i].getType() != TOWER_SUPPORT)
+        continue;
+
+      uint8_t boosterLevel = list[i].getLevel() + 1;
+
+      //Serial.println("found booster i: " + String(i) + " at map index:" + String(list[i].index));
+
+      // check all twelfe postions next to tower, diagonal is not included!
+      for (uint8_t p = 0; p < 12; p++) {
+
+        uint8_t mapIndex = list[i].index;
+
+        // get x and y coordinates near
+        int8_t xTest = getxR(mapIndex) + pgm_read_byte(xPostionsNear + p);
+        int8_t yTest = getyR(mapIndex) + pgm_read_byte(yPostionsNear + p);
+
+        //Serial.println(" look at xTest: " + String(xTest) + " yTest:" + String(yTest));
+
+        // leave because out of map
+        if (xTest < 0 || xTest >= ROWS || yTest < 0 || yTest >= COLUMNS)
+          continue;
+
+        uint8_t testTowerIndex = getTowerAt(xTest, yTest);
+
+        // leave because there was no tower placed at this positon
+        if (testTowerIndex == NO_INDEX)
+          continue;
+
+        // leave because support towers can not boost each others
+        if (list[testTowerIndex].getType() == TOWER_SUPPORT)
+          continue;
+
+        list[testTowerIndex].boost += boosterLevel * BOOST_PRO_LVL;
+
+        //Serial.println(" boost to: " + String(list[testTowerIndex].boost));    
+      }
+    }
   }
 
   void add(uint8_t xR, uint8_t yR, uint8_t type) {
@@ -460,6 +513,7 @@ struct towerManager {
 
       // set values
       list[i].index = mapIndex;
+      list[i].boost = 0;
       list[i].setLevel(0);
       list[i].setState(0);
       list[i].setType(type);

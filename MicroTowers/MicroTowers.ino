@@ -64,7 +64,7 @@ void setup() {
   arduboy.setExternalButtonsHandler(getButtons);
 
   // i think this is only needed for the esp8266 eeprom emulation
-  EEPROM.begin(128);
+  EEPROM.begin(5 * NODES_COMPRESSED + 100);
 #endif
 
   arduboy.begin();
@@ -97,7 +97,7 @@ void loop() {
 
   checkButtons();
 
-  if (gameMode != MODE_MAPS_LIST)
+  if (!inMapsListMode(gameMode))
     updateGame();
 
   mainScheduler();

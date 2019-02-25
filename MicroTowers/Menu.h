@@ -39,21 +39,22 @@ void drawMapBorders() {
   }
 }
 
-void drawMapInfos(uint8_t lvl) {
+void drawMapInfos(uint8_t num) {
 
   mF.setCursor(5, 24);
 
-  if (lvl == 0) {
-    mF.print(F("EDITOR"));
+  if (gameMode == MODE_MAPS_CAMPAIN) {
+    mF.print(F("LEVEL"));
 
   } else {
-    mF.print(F("LEVEL"));
-    mF.print(lvl);
+    mF.print(F("SLOT"));
   }
+
+  mF.print(num);  
 
   mF.setCursor(5, 34);
   mF.print(F("SCR:"));
-  mF.print(lvl * 71 + 13);
+  mF.print(num * 71 + 13);
 }
 
 void drawCenterMapHighlighter() {
@@ -71,25 +72,57 @@ void drawCenterMapHighlighter() {
   arduboy.drawLine(xPosStart, yEntryEnd, xPosEnd, yEntryEnd, BLACK);
 }
 
-void drawMapsList() {
+
+void drawMapsListEditor() {
   // create a bigger index value for scrolling
   const uint8_t mapHeight = 23;
-  int16_t indexInPixels = indexMapsList * mapHeight;
+  int16_t indexInPixels = indexMapsEditor * mapHeight;
+  static int16_t indexMapsEditorDelayed = 0;
 
   // approach argument 1 to argument 2
-  scrollIndex(indexMapsListDelayed, indexInPixels);
+  scrollIndex(indexMapsEditorDelayed, indexInPixels);
 
   // draw all the content on left side, score usw.
-  drawMapInfos(indexMapsList);
+  drawMapInfos(indexMapsEditor);
 
   // draw little frame thing to highlight the center map
   drawCenterMapHighlighter();
 
   // try to draw all of the menu items if they are on the screen or not
-  for (int8_t i = 0; i < MAPSLIST_ITEMS; i++) {
+  for (int8_t i = 0; i < EDITOR_MAP_SLOTS; i++) {
 
     // calculate vertical offset
-    int16_t yOffset = i * mapHeight + mapHeight - 1 - indexMapsListDelayed;
+    int16_t yOffset = i * mapHeight + mapHeight - 1 - indexMapsEditorDelayed;
+
+    // no need for drawing
+    if (yOffset < -mapHeight || yOffset > HEIGHT)
+      continue;
+
+    mM.drawMapPreview(80, yOffset, i);
+  }
+}
+
+
+void drawMapsListCampain() {
+  // create a bigger index value for scrolling
+  const uint8_t mapHeight = 23;
+  int16_t indexInPixels = indexMapsCampain * mapHeight;
+  static int16_t indexMapsCampainDelayed = 0;
+
+  // approach argument 1 to argument 2
+  scrollIndex(indexMapsCampainDelayed, indexInPixels);
+
+  // draw all the content on left side, score usw.
+  drawMapInfos(indexMapsCampain);
+
+  // draw little frame thing to highlight the center map
+  drawCenterMapHighlighter();
+
+  // try to draw all of the menu items if they are on the screen or not
+  for (int8_t i = 0; i < MAPS_IN_CAMPAIN; i++) {
+
+    // calculate vertical offset
+    int16_t yOffset = i * mapHeight + mapHeight - 1 - indexMapsCampainDelayed;
 
     // no need for drawing
     if (yOffset < -mapHeight || yOffset > HEIGHT)

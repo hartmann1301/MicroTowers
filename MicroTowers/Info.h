@@ -9,6 +9,10 @@ void setInfoMessage(uint8_t infoType) {
   // set default screen time in frames
   infoMsgTimeout = 40;
 
+  // show messages longer when fast mode is active
+  if (!isNormalSpeed)
+    infoMsgTimeout *= 2;
+
   // set message type
   infoMsgType = infoType;
 }
@@ -32,16 +36,16 @@ bool drawInfoMessage() {
 
   } else if (infoMsgType == INFO_BLOCKED_AREA) {
     mF.print(F("BLOCKED AREA"));
-    
+
   } else if (infoMsgType == INFO_ENTRY_BLOCK) {
     mF.print(F("NO ENTRY BLOCKING"));
-    
+
   } else if (infoMsgType == INFO_JUST_A_HOUSE) {
     mF.print(F("JUST A BUILDING"));
-   
+
   } else if (infoMsgType == INFO_SEND_NEXT_WAVE) {
     mF.print(F("A: TO SEND WAVE"));
-   
+
   }
 
   return true;
@@ -73,7 +77,7 @@ void drawMainMenuText(int16_t xWrite, uint8_t index) {
 
   switch (index) {
     case 0:
-      mF.print(F("  PLAY"));
+      mF.print(F("CAMPAIN"));
       break;
     case 1:
       mF.print(F("EDITOR"));
@@ -105,6 +109,7 @@ void drawMainMenuRank() {
 }
 
 void drawMainMenu() {
+  static int16_t indexMainMenuDelayed = 0;
 
   // write the games name to the screen
   mF.setCursor(22, 3);

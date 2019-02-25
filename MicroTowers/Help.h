@@ -62,6 +62,10 @@ bool inEditorMode(uint8_t m) {
   return m == MODE_EDITOR || m == MODE_EDITOR_MENU;
 }
 
+bool inMapsListMode(uint8_t m) {
+  return m == MODE_MAPS_CAMPAIN || m == MODE_MAPS_EDITOR;
+}
+
 uint8_t getIndex(uint8_t xR, uint8_t yR) {
   return xR + yR * ROWS;
 }
@@ -242,18 +246,6 @@ void fillChessRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color) {
         arduboy.drawPixel(i, j, color);
     }
   }
-}
-
-void drawLongPress(int8_t pressTime) {
-
-  if (!isLongPressed)
-    return;
-
-  // to keep it on the screen
-  if (pressTime > 61)
-    pressTime = 61;
-
-  arduboy.fillRect(0, 56, pressTime * 2, 1, BLACK);
 }
 
 void drawCursor() {

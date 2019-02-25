@@ -51,9 +51,6 @@ struct enemy {
 
   void saveDirection(uint8_t dir) {
 
-    //Serial.print("pathStorage was : ");
-    //Serial.println(pathStorage, HEX);
-
     // calc shifts for the current slot
     uint8_t shifts = (getState() % 3) * 2;
 
@@ -125,7 +122,7 @@ struct enemy {
         currentLifePoints--;
 
       } else {
-        Serial.println("End of game");
+        Serial.println("Enemy reached hq");
 
         currentLifePoints = 100;
       }
@@ -394,7 +391,7 @@ struct enemyManager {
       enemyType = currentWaveType;
     }
 
-    Serial.println("add Enemy nr: " + String(enemysOfWave) + " type: " + String(enemyType) + " waveCounter " + String(waveCounter));
+    //Serial.println("add Enemy nr: " + String(enemysOfWave) + " type: " + String(enemyType) + " waveCounter " + String(waveCounter));
 
     // add the enemy left to the entry on screen
     add(rand() % 4 - 8, 22, enemyType);

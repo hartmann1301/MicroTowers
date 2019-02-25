@@ -33,7 +33,10 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define NODES_COMPRESSED    (NODES / 4)
 #define ENTRY_POSITION      ((COLUMNS / 2) * ROWS)
 
+#define NO_INDEX            255
 #define BUFFER_MAX          (WIDTH*HEIGHT/8)
+
+#define BOOST_PRO_LVL       10
 
 #define RASTER              6
 #define HALF_RASTER         (RASTER / 2)
@@ -45,7 +48,8 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define LONGPRESS_TIME      30
 
 #define MAINMENU_ITEMS      4
-#define MAPSLIST_ITEMS      6
+#define MAPS_IN_CAMPAIN     6
+#define EDITOR_MAP_SLOTS    5
 
 #define MENU_ITEMS_BUILD    8
 #define MENU_ITEMS_EDITOR   4
@@ -56,6 +60,7 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define ENEMYS_IN_WAVE      5
 #define TYPES_OF_WAVES      6
 #define MAXIMAL_WAVE        30
+
 
 // in gameFrames to work also in fast mode
 #define NEXT_ENEMY_TIMEOUT  FRAMES_PRO_SEC
@@ -79,7 +84,8 @@ uint8_t* buffer = arduboy.getBuffer();
 // holds the main status of this game
 enum {
   MODE_MAINMENU = 0,
-  MODE_MAPS_LIST,
+  MODE_MAPS_CAMPAIN,
+  MODE_MAPS_EDITOR,  
   MODE_PLAYING_INFO,
   MODE_PLAYING,
   MODE_PLAYING_BUILD,
@@ -167,6 +173,7 @@ bool isFastSpeedFrame = false;
 
 int8_t stateButtonA = 0;
 int8_t stateButtonB = 0;
+bool foundLongPress = false;
 
 uint8_t xCursor = 1;
 uint8_t yCursor = 4;
@@ -175,18 +182,13 @@ uint8_t statCursor = 0;
 uint8_t indexMainMenu = 0;
 uint8_t indexBuildMenu = 0;
 uint8_t indexTowerMenu = 0;
-uint8_t indexMapsList = 0;
+uint8_t indexMapsCampain = 0;
+uint8_t indexMapsEditor = 0;
 uint8_t indexOptions = 0;
-
-int16_t indexMainMenuDelayed = 0;
-int16_t indexMapsListDelayed = 0;
 
 //eeprom data
 uint8_t unlockedMaps = 5;
-
 //
-
-
 
 enum {
   TOWER_GATLING = 0,
