@@ -33,13 +33,18 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define NODES_COMPRESSED    (NODES / 4)
 #define ENTRY_POSITION      ((COLUMNS / 2) * ROWS)
 
+#define IS_CLOSED           true
+#define NOT_CLOSED          false
+
 #define NO_INDEX            255
 #define BUFFER_MAX          (WIDTH*HEIGHT/8)
 
-#define BOOST_PRO_LVL       10
+#define BOOST_PRO_LVL       20
 
 #define RASTER              6
 #define HALF_RASTER         (RASTER / 2)
+
+#define MAPS_IN_CAMPAIN      20
 
 #define RASTER_OFFSET_X     1
 #define RASTER_OFFSET_Y     0
@@ -47,8 +52,8 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define LONGPRESS_INFO      15
 #define LONGPRESS_TIME      30
 
-#define MAINMENU_ITEMS      4
-#define MAPS_IN_CAMPAIN     6
+#define MAINMENU_ITEMS      5
+#define MAPS_IN_CAMPAIN     20
 #define EDITOR_MAP_SLOTS    5
 
 #define MENU_ITEMS_BUILD    8
@@ -78,9 +83,6 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define ROT180 2
 #define ROTCW 3
 
-// this pointer to the display buffer is for my drawing functions
-uint8_t* buffer = arduboy.getBuffer();
-
 // holds the main status of this game
 enum {
   MODE_MAINMENU = 0,
@@ -90,6 +92,7 @@ enum {
   MODE_PLAYING,
   MODE_PLAYING_BUILD,
   MODE_PLAYING_TOWER,
+  MODE_PLAYING_END,
   MODE_EDITOR,
   MODE_EDITOR_MENU,
   MODE_OPTIONS,
@@ -106,7 +109,8 @@ enum {
   INFO_BLOCKED_AREA,
   INFO_ENTRY_BLOCK,
   INFO_JUST_A_HOUSE,
-  INFO_SEND_NEXT_WAVE
+  INFO_SEND_NEXT_WAVE,
+  INFO_TO_LESS_COINS
 };
 uint8_t infoMsgType = 0;
 
@@ -124,6 +128,7 @@ bool cursorPressed = false;
 bool isNormalSpeed = true;
 bool mapChanged = true;
 
+bool isInCampainMode;
 bool isFramesMod2;
 
 uint32_t nextButtonInput = 0;
@@ -143,8 +148,17 @@ uint8_t currentLifePoints;
 // counts the waves in a level from 1 to 30 
 uint8_t waveCounter = 0;
 
+// holds what kind of enemy wave is currently spawning
+uint8_t waveType = 0;
+
 // your coins to buy new towers or upgrade existing towers, could overflow!! (uint16_t)
-uint8_t currentCoins = 189;
+uint16_t currentCoins = 0;
+
+// this is for the maps list score
+uint16_t currentScore = 0;
+
+// this holds the lvl of the tower where the cursor is in menu
+uint8_t currentTowerLvl = 0;
 
 // on wave start ENEMYS_IN_WAVE is loaded to the variable and than decremented
 int8_t enemysOfWave = 0;
@@ -159,11 +173,11 @@ uint8_t sendWaveStatus = WAVE_FINISHED;
 
 // stores how the current enemys are looking
 enum {
-  ENEMY_TYPE_CYBORG = 0,
-  ENEMY_TYPE_TWOPOD,
-  ENEMY_TYPE_MONSTER
+  ENEMY_RACE_CYBORG = 0,
+  ENEMY_RACE_TWOPOD,
+  ENEMY_RACE_MONSTER
 };
-uint8_t currentEnemysType = ENEMY_TYPE_CYBORG;
+uint8_t enemysRace = ENEMY_RACE_CYBORG;
 
 // while a wave is active this variable stores the gameFrames until next enemy is stored
 uint32_t nextEnemyFrame = 0;
@@ -186,9 +200,15 @@ uint8_t indexMapsCampain = 0;
 uint8_t indexMapsEditor = 0;
 uint8_t indexOptions = 0;
 
-//eeprom data
-uint8_t unlockedMaps = 5;
-//
+// in this var the boost is stored before opening the tower menu
+uint8_t towerBoost = 0;
+
+// is calculated before opening the tower info menu
+uint8_t priceUpdate = 0;
+uint8_t priceSell = 0;
+
+// is also stored to the eeprom
+uint8_t unlockedMaps = 20;
 
 enum {
   TOWER_GATLING = 0,
@@ -202,11 +222,18 @@ enum {
 };
 
 enum {
+  C_NORMAL = 0,
+  C_LIGHT,
+  C_WAVE,
+  C_ELSE 
+};
+
+enum {
   ENEMY_IS_DEFAULT = 0,
   ENEMY_IS_FAST,
-  ENEMY_RESITS_BULLETS,
-  ENEMY_RESITS_LASERS,
-  ENEMY_RESITS_AOES,
+  ENEMY_RESITS_NORMAL,
+  ENEMY_RESITS_LIGHT,
+  ENEMY_RESITS_WAVES,
   ENEMY_MIX
 };
 
@@ -235,6 +262,11 @@ enum {
   SYMBOL_INFO,
   SYMBOL_SELL,
   SYMBOL_FASTMODE
+};
+
+enum {
+  ANIMATION_IMPACT = 0,
+  ANIMATION_RESIST
 };
 
 enum {

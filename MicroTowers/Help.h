@@ -37,6 +37,57 @@ uint8_t getProgMem(const uint8_t *pointer, uint8_t offset) {
   return pgm_read_byte(pointer + offset);
 }
 
+uint8_t getTowerRange(uint8_t type, uint8_t lvl) {
+
+  // start with the minimal range of every tower
+  uint8_t range = 10;
+
+  // add tower specific range times 2
+  range += getProgMem(towerBasicRanges, type) * 2;
+
+  // add tower specific range plus pro level
+  range += getProgMem(towerExtraRanges, type) * lvl;
+
+  //Serial.println("Tower: " + String(type) + " has Range of:" + String(range));
+
+  return range;
+}
+
+uint8_t getTowerPrice(uint8_t type, uint8_t lvl) {
+
+  //
+  uint8_t price = getProgMem(towerBasicPrices, type) * (lvl + 1);
+
+  // add tower specific extra update cost
+  price += getProgMem(towerExtraPrices, type) * lvl;
+
+  return price;
+}
+
+uint8_t getTowerReload(uint8_t type, uint8_t lvl) {
+
+  uint8_t reloadFrames = getProgMem(towerReloadTimes, type);
+
+  // reduce depending on current level
+  return reloadFrames - lvl;
+}
+
+uint16_t getTowerDamage(uint8_t type, uint8_t lvl, uint8_t boost) {
+
+  uint16_t dmg = getProgMem(towerDamages, type) * (lvl + 1);
+
+  // add boost percentage
+  if (boost != 0)
+    dmg += (dmg / 100) * boost;
+
+  return dmg;
+}
+
+uint8_t getTowerCategory(uint8_t type) {
+
+  return getProgMem(towerCategories, type);
+}
+
 // could be done with getProgMem() but is called 3 times so it is maybe worth a function
 int8_t getDirectionX(uint8_t sektor) {
   return pgm_read_byte(sektorStartX + sektor);
@@ -55,7 +106,7 @@ bool isLongPressed(int8_t buttonState) {
 }
 
 bool inPlayingMode(uint8_t m) {
-  return m >= MODE_PLAYING_INFO && m <= MODE_PLAYING_TOWER;
+  return m >= MODE_PLAYING_INFO && m <= MODE_PLAYING_END;
 }
 
 bool inEditorMode(uint8_t m) {
@@ -97,6 +148,21 @@ uint16_t getEnemyHp(uint8_t wave, uint8_t mapDifficulty) {
   return hp;
 }
 
+void calculateScore() {
+  //Serial.println("currentLifePoints: " + String(currentLifePoints) + " waveCounter: " + String(waveCounter) + " currentCoins: " + String(currentCoins));
+
+  // write to global variable
+  currentScore = uint16_t(waveCounter * 10) + currentLifePoints + currentCoins / 2;
+
+  //Serial.println("is score: " + String(currentScore));
+}
+
+uint16_t getEnemyReward(uint8_t wave) {
+
+  // calculate the reward for killing one enemy
+  return getEnemyHp(wave, 10) / 150;
+}
+
 void drawBitmapSlow(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8_t h, uint8_t offset, uint8_t rotation, uint8_t color) {
 
   // return because there is nothing to draw
@@ -118,7 +184,7 @@ void drawBitmapSlow(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8
 
       uint8_t yOffset = j / 8;
       uint8_t bitOffset = j % 8;
-            
+
       // continue to next for value if the bit is not set
       if (!(pgm_read_byte(image + xByteOffset * yOffset + i + wOffset) & (B00000001 << bitOffset)))
         continue;
@@ -219,11 +285,14 @@ void drawBitmapFast(int16_t x, int16_t y, const uint8_t *data, uint8_t w, uint8_
   }
 }
 
-// maybe this is not needed
+// comfort functions
 void drawBitmapFast(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8_t offset, bool hFlip) {
   drawBitmapFast(x, y, image, w, offset, hFlip, BLACK);
 }
 
+void drawBitmapFast(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8_t offset) {
+  drawBitmapFast(x, y, image, w, offset, false, BLACK);
+}
 
 void fillChessRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color) {
   if (w + x > 128)
@@ -296,6 +365,36 @@ void drawTowerSocket(uint8_t x, uint8_t y, uint8_t lvl) {
   uint8_t socketCorner = 3 - lvl + uint8_t(lvl < 2);
 
   arduboy.drawRoundRect(x, y, 11, 11, socketCorner, BLACK);
+}
+
+void drawTowerWeapon(uint8_t x, uint8_t y, uint8_t type, uint8_t sektor, uint8_t lvl) {
+
+  if (isRotatingTower(type)) {
+
+    // TODO: draw 1/4 of those towers fast
+
+    // set offset for correct level and fine rotation
+    uint8_t offset = lvl % 4 + (sektor % 4) * 4;
+
+    // set tower offset
+    offset += type * 16;
+
+    // divide again by 4 because sprite can only rotate every 90 degrees
+    uint8_t rotation = sektor / 4;
+
+    // rotate 180° because the sprite looks to the left side
+    rotation = (rotation + 2) % 4;
+
+    //  Serial.println("drawSlow:" + String(type) + " offset " + String(offset) + " rotation " + String(rotation));
+    drawBitmapSlow(x + 2, y + 2, allTowers, 7, 7, offset, rotation);
+
+  } else {
+    // offset is a huge value, because the five other towers are on top
+    uint8_t offset = lvl % 4 + (type - TOWER_SHOCK) * 4 + 16 * 6;
+
+    // can be drawn fast
+    drawBitmapFast(x + 2, y + 2, allTowers, 7, offset);
+  }
 }
 
 uint8_t integerSqrt(uint8_t n) {

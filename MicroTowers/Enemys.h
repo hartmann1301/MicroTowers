@@ -83,6 +83,29 @@ struct enemy {
     return tmp >> shifts;
   }
 
+  void damageHQ() {
+
+    if (currentLifePoints > 10) {
+      currentLifePoints -= 10;
+
+      return;
+    }
+
+    //Serial.println("Game is over");
+
+    // set to zero for score calculations
+    currentLifePoints = 0;
+
+    // calulate score
+    calculateScore();
+
+    // write score to eeprom
+    updateEepromScore();
+
+    // this is the gameover mode
+    gameMode = MODE_PLAYING_END;
+  }
+
   void update() {
     if (isFramesMod2 && type != ENEMY_IS_FAST)
       return;
@@ -117,15 +140,10 @@ struct enemy {
 
     // check if headquarter was reached
     if (dir == NO_DIRECTION) {
+      //Serial.println("Enemy reached hq");
 
-      if (currentLifePoints > 0) {
-        currentLifePoints--;
-
-      } else {
-        Serial.println("Enemy reached hq");
-
-        currentLifePoints = 100;
-      }
+      if (gameMode != MODE_MAINMENU)
+        damageHQ();
 
       // no need for this enemy anymore
       die();
@@ -174,7 +192,11 @@ struct enemy {
       return false;
 
 #ifdef DEGUG_DMG_ENEMYS
-    Serial.print("Enemy got DMG:");
+    Serial.print("Enemy type:");
+    Serial.print(type, DEC);
+    Serial.print(" dmg type:");
+    Serial.print(dmgType, DEC);
+    Serial.print(" got DMG:");
     Serial.print(dmg, DEC);
 #endif
 
@@ -183,15 +205,30 @@ struct enemy {
     Serial.print(health, DEC);
 #endif
 
-    // reduce the damage because of damage resistances
-    if (type == ENEMY_RESITS_BULLETS && (dmgType == TOWER_GATLING || dmgType == TOWER_CANNON))
+    // get resistance category
+    uint8_t category = getTowerCategory(dmgType);
+
+#ifdef DEGUG_DMG_ENEMYS
+    Serial.print(" category is: ");
+    Serial.print(category, DEC);
+#endif
+
+    if (type == ENEMY_RESITS_NORMAL && category == C_NORMAL)
       dmg /= 2;
 
-    if (type == ENEMY_RESITS_LASERS && (dmgType == TOWER_RAILGUN || dmgType == TOWER_LASER))
+    if (type == ENEMY_RESITS_LIGHT && category == C_LIGHT)
       dmg /= 2;
 
-    if (type == ENEMY_RESITS_AOES && (dmgType == TOWER_FLAME || dmgType == TOWER_SHOCK))
+    if (type == ENEMY_RESITS_WAVES && category == C_WAVE)
       dmg /= 2;
+
+    // use less animations for those towers
+    bool useAnimation = true;
+    if (((dmgType == TOWER_FLAME) || (dmgType == TOWER_LASER) || (dmgType == TOWER_SHOCK)) && gameFrames % 4 != 0)
+      useAnimation = false;
+
+    if (useAnimation)
+      aM.add(x, y);
 
 #ifdef DEGUG_DMG_ENEMYS
     Serial.print(" resisted: ");
@@ -199,8 +236,6 @@ struct enemy {
 #endif
 
     // do the animation
-
-
     if (health > dmg) {
       health -= dmg;
 
@@ -224,8 +259,14 @@ struct enemy {
   }
 
   void die() {
+    // give player some coins
+    currentCoins += getEnemyReward(waveCounter);
 
-    // delete this enemy for the manager list
+    // there is only space for 3 letters
+    if (currentCoins > 999)
+      currentCoins = 999;
+
+    // delete this enemy from the manager list
     bitClear(pathStorage, BIT_ENEMY_ACTIVE);
   }
 
@@ -233,7 +274,7 @@ struct enemy {
 
     // twopods are a bit to high, so minus one pixel of yPos
     int8_t yPos = y;
-    if (currentEnemysType == ENEMY_TYPE_TWOPOD)
+    if (enemysRace == ENEMY_RACE_TWOPOD)
       yPos--;
 
     uint16_t oneHealthPixel = currentWaveHp / 7;
@@ -257,10 +298,10 @@ struct enemy {
     uint8_t w = 6;
 
     const uint8_t *img;
-    if (currentEnemysType == ENEMY_TYPE_CYBORG) {
+    if (enemysRace == ENEMY_RACE_CYBORG) {
       img = enemyCyborgs;
 
-    } else if (type <= ENEMY_TYPE_TWOPOD) {
+    } else if (enemysRace == ENEMY_RACE_TWOPOD) {
       img = enemyTwoPods;
 
     } else {
@@ -337,38 +378,46 @@ struct enemyManager {
       // sets how many enemys will be sent in this wave
       enemysOfWave = ENEMYS_IN_WAVE;
 
-      // increment the levels waves
-      if (waveCounter < MAXIMAL_WAVE)
-        waveCounter++;
-
-      // recalculate the hp of the current wave
+      // calculate the hp of the current wave
       currentWaveHp = getEnemyHp(waveCounter, currentMapDifficulty);
+
+      // fast enemys are a bit weaker
+      if (waveType == ENEMY_IS_FAST)
+        currentWaveHp -= (currentWaveHp / 5);
 
       // to skip this in the next call
       sendWaveStatus = WAVE_ACTIVE;
     }
 
-    //  holds what kinds of enemys will be sent, see ENEMYS enum
-    uint8_t currentWaveType = waveCounter % TYPES_OF_WAVES;
-
     // wave if over if no enemy is left to spawn and map is empty
     if (count() == 0 && enemysOfWave == 0) {
+
+      // to be able to start next wave
       sendWaveStatus = WAVE_FINISHED;
+
+      // increment the levels waves
+      if (waveCounter < MAXIMAL_WAVE)
+        waveCounter++;
+
+      //  holds what kinds of enemys will be sent, see ENEMYS enum
+      waveType = waveCounter % TYPES_OF_WAVES;
 
       // if playing show message that next wave can be triggered
       if (inPlayingMode(gameMode))
         setInfoMessage(INFO_SEND_NEXT_WAVE);
 
       // if 6 waves passed than it is time to change the race
-      if (currentWaveType == TYPES_OF_WAVES - 1) {
+      if (waveType == TYPES_OF_WAVES - 1) {
 
         // change race, this should only be done if no enemy is on the field
-        if (currentEnemysType < 2) {
-          currentEnemysType++;
+        if (enemysRace < 2) {
+          enemysRace++;
 
         } else {
-          currentEnemysType = 0;
+          enemysRace = 0;
         }
+
+        Serial.println("change Race " + String(waveType) + " to " + String(enemysRace));
       }
     }
 
@@ -381,14 +430,14 @@ struct enemyManager {
 
     // get the type of the enemy
     uint8_t enemyType;
-    if (currentWaveType == ENEMY_MIX) {
+    if (waveType == ENEMY_MIX) {
 
       // add 5 different enemys
       enemyType = enemysOfWave;
     } else {
 
       // add 5 of the same kind
-      enemyType = currentWaveType;
+      enemyType = waveType;
     }
 
     //Serial.println("add Enemy nr: " + String(enemysOfWave) + " type: " + String(enemyType) + " waveCounter " + String(waveCounter));

@@ -41,20 +41,44 @@ void drawMapBorders() {
 
 void drawMapInfos(uint8_t num) {
 
-  mF.setCursor(5, 24);
+  if (gameMode == MODE_MAPS_CAMPAIN) {
 
+    uint8_t xPos = 8;
+    const uint8_t stars = currentScore / 200;
+    
+    for (uint8_t i = 0; i < stars; i++) {
+
+      //drawBitmapSlow(xPos, 4, scoreStars, 15, 16, 0, 0, 0);
+
+      arduboy.drawBitmap(xPos, 4, scoreStars, 15, 16, BLACK);
+
+      xPos += 20;
+    }
+
+  } else {
+    // write hint to edit the map
+    mF.setCursor(5, 4);
+    mF.print(F("PRESS >"));
+    mF.setCursor(5, 12);
+    mF.print(F("TO EDIT"));
+  }
+
+
+  mF.setCursor(10, 24);
   if (gameMode == MODE_MAPS_CAMPAIN) {
     mF.print(F("LEVEL"));
 
   } else {
     mF.print(F("SLOT"));
   }
+  
+  mF.print(num + 1);
 
-  mF.print(num);  
+  mF.setCursor(5, 38);
+  mF.print(F("HIGHSCORE"));
 
-  mF.setCursor(5, 34);
-  mF.print(F("SCR:"));
-  mF.print(num * 71 + 13);
+  mF.setCursor(24, 52);
+  mF.print(currentScore);
 }
 
 void drawCenterMapHighlighter() {
@@ -155,6 +179,7 @@ uint8_t drawCircleIfActive(uint8_t xDraw, uint8_t yPos, bool isActiveIndex) {
 }
 
 bool shiftMenuOut() {
+  // note: this is not possibel to see, because the menu is not drawn anymore
 
   // shift menu outside screen
   if (xPosRightMenu < 132)
@@ -185,6 +210,131 @@ void setVeritcalOffset(uint8_t &yPos, bool isActive) {
 
   // set y position for next icon
   yPos += ICON_HEIGHT;
+}
+
+void drawPlayingTowerInfo() {
+
+  uint8_t yPos = 2;
+  for (uint8_t i = 0; i < 5; i++) {
+
+    // write the tags
+    mF.setCursor(10, yPos);
+    switch (i) {
+      case 0:
+        mF.print(F("PRICE"));
+        break;
+      case 1:
+        if (indexBuildMenu == TOWER_SUPPORT) {
+            mF.print(F("BOOST"));
+  
+        } else {
+            mF.print(F("DAMAGE"));
+        }
+        break;
+      case 2:
+        mF.print(F("RANGE"));
+        break;
+      case 3:
+        mF.print(F("RELOAD"));
+        break;
+      case 4:
+        mF.print(F("TYPE"));
+        break;
+    }
+
+    // write the infos
+    mF.setCursor(80, yPos);
+    switch (i) {
+      case 0:
+        mF.print(getTowerPrice(indexBuildMenu, indexMapsEditor));
+        break;
+      case 1:
+        mF.print(getTowerDamage(indexBuildMenu, indexMapsEditor, 0));
+        break;
+      case 2:
+        mF.print(getTowerRange(indexBuildMenu, indexMapsEditor));
+        break;
+      case 3:
+        // reload
+        if (indexBuildMenu <= TOWER_RAILGUN) {
+          mF.print(getTowerReload(indexBuildMenu, indexMapsEditor));
+
+        } else if (indexBuildMenu <= TOWER_LASER) {
+          mF.print(F("50%"));
+
+        } else {
+          mF.print(F("-"));
+        }
+        break;
+      case 4:
+        // draw an icon for the next wave
+        drawBitmapFast(66, yPos, waveTypes, 6, getTowerCategory(indexBuildMenu), false);
+      
+        // print the category of the tower
+        switch (getTowerCategory(indexBuildMenu)) {
+          case 0:
+            mF.print(F("NORMAL"));
+            break;
+          case 1:
+            mF.print(F("LIGHT"));
+            break;
+          case 2:
+            mF.print(F("WAVE"));
+            break;
+          case 3:
+            mF.print(F("-"));
+            break;
+        }
+        break;       
+    }
+    // set y position of the next line
+    yPos += 9;
+  }
+
+  // write a litte text to describe the tower
+  mF.setCursor(10, yPos);
+  switch (indexBuildMenu) {
+    case TOWER_GATLING:
+      mF.print(F("-"));
+      break;
+    case TOWER_CANNON:
+      mF.print(F("AOE ON IMPACT"));
+      break;
+    case TOWER_FROST:
+      mF.print(F("SLOWS ENEMYS"));
+      break;
+    case TOWER_RAILGUN:
+      mF.print(F("HITS ALL IN LINE"));
+      break;
+    case TOWER_FLAME:
+      mF.print(F("MULTIPLE HITS"));
+      break;
+    case TOWER_LASER:
+      mF.print(F("100% HIT CHANCE"));
+      break;
+    case TOWER_SHOCK:
+      mF.print(F("HITS EVERYONE"));
+      break;
+    case TOWER_SUPPORT:
+      mF.print(F("BOOSTS OTHERS"));
+      break;
+  }
+
+  // draw tower index symbol on the right side
+  uint8_t yHint = 7;
+  for (uint8_t i = 0; i < MENU_ITEMS_BUILD; i++) {
+
+    // if it is current index increas the width
+    uint8_t w = 1;
+    if (i == indexBuildMenu)
+      w = 3;
+
+    // draw a hint
+    arduboy.fillRect(124, yHint, w, 3, BLACK);
+
+    // set y position for next hint
+    yHint += 5;
+  }
 }
 
 void drawPlayingTowerMenu() {
@@ -285,8 +435,13 @@ void drawOptionsMenu() {
 
 void drawCredits() {
 
-  mF.setCursor(30, 30);
-  mF.print(F("CREDITS"));
+  arduboy.drawBitmap(39, 2, controllerDesign, 51, 32, BLACK);
+
+  mF.setCursor(20, 36);
+  mF.print(F("PROGRAMMED BY"));
+  
+  mF.setCursor(26, 46);
+  mF.print(F("HARTMANN1301"));  
 }
 
 #endif

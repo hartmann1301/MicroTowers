@@ -145,24 +145,28 @@ void goToMainMenu() {
 
   // delete all existing enemys on map
   eM.init();
+  aM.init();
 
   // the loaded map is main menu background and playable map
-  loadMap(4);
+  loadMap(9);
 
   // needs to be after loading the map
-  tM.add(1, 4, TOWER_GATLING);
-  tM.add(3, 5, TOWER_CANNON);
-  tM.add(4, 2, TOWER_FROST);
-  tM.add(7, 6, TOWER_SUPPORT);
-  tM.add(8, 2, TOWER_FLAME);
-  tM.add(9, 5, TOWER_SHOCK);
-  tM.add(13, 3, TOWER_RAILGUN);
-  tM.add(14, 7, TOWER_LASER);
+  tM.add(9, 5, TOWER_GATLING);
+  tM.add(5, 3, TOWER_CANNON);
+  tM.add(1, 2, TOWER_FROST);
+  tM.add(7, 4, TOWER_SUPPORT);
+  tM.add(13, 5, TOWER_FLAME);
+  tM.add(2, 4, TOWER_SHOCK);
+  tM.add(5, 5, TOWER_RAILGUN);
+  tM.add(12, 3, TOWER_LASER);
 }
 
 void buttonsMainMenu() {
 
   // TODO: do something on B button
+
+  if (isLongPressed(stateButtonA) && indexMainMenu == 4)
+    resetGame();
 
   // go to next mode
   if (arduboy.justReleased(A_BUTTON)) {
@@ -170,9 +174,15 @@ void buttonsMainMenu() {
       case 0:
         gameMode = MODE_MAPS_CAMPAIN;
 
+        // is used to load scores from eeprom
+        isInCampainMode = true;
+
         break;
       case 1:
         gameMode = MODE_MAPS_EDITOR;
+
+        // is used to load scores from eeprom
+        isInCampainMode = false;
 
         // load editor maps from eeprom to ram array for preview
         loadMapsFromEEPROM();
@@ -191,6 +201,8 @@ void buttonsMainMenu() {
     return;
 
   checkLeftRight(indexMainMenu, MAINMENU_ITEMS);
+
+  //checkUpDown(unlockedMaps, 11);
 
   setCursorTimeout();
 }
@@ -211,6 +223,10 @@ void buttonsMapsCampain() {
 
   checkUpDown(indexMapsCampain, min(unlockedMaps, MAPS_IN_CAMPAIN));
 
+  // get the score of the new map();
+  if (arduboy.justPressed(UP_BUTTON) || arduboy.justPressed(DOWN_BUTTON))
+    updateCurrentScore();
+
   setCursorTimeout();
 }
 
@@ -219,22 +235,24 @@ void buttonsMapsEditor() {
   // play
   if (arduboy.justReleased(A_BUTTON)) {
 
-    gameMode = MODE_PLAYING;
-
     // put the current map from pgm space to mapComposition array
     loadMap(indexMapsEditor);
+
+    // this needs to be done after loading the map!
+    gameMode = MODE_PLAYING;
   }
 
   // edit
   if (arduboy.justReleased(RIGHT_BUTTON)) {
-
-    gameMode = MODE_EDITOR;
 
     // because the editor menu is using the same index but is only 4 long
     indexBuildMenu = 0;
 
     // put the current map from pgm space to mapComposition array
     loadMap(indexMapsEditor);
+
+    // should be done after loading the map
+    gameMode = MODE_EDITOR;
   }
 
   if (isTimeoutActive())
@@ -242,7 +260,54 @@ void buttonsMapsEditor() {
 
   checkUpDown(indexMapsEditor, EDITOR_MAP_SLOTS);
 
+  // get the score of the new map();
+  if (arduboy.justPressed(UP_BUTTON) || arduboy.justPressed(DOWN_BUTTON))
+    updateCurrentScore();
+
   setCursorTimeout();
+}
+
+void checkPrepareTowerMenu() {
+  // get tower where the cursor is
+  uint8_t towerIndex = tM.getTowerAt(xCursor, yCursor);
+
+  // there are towers but the cursor is wrong between them
+  if (towerIndex == NO_INDEX) {
+
+    // use blocked area again
+    setInfoMessage(INFO_BLOCKED_AREA);
+
+    return;
+  }
+
+  gameMode = MODE_PLAYING_TOWER;
+
+  uint8_t type = tM.list[towerIndex].getType();
+  uint8_t lvl = tM.list[towerIndex].getLevel();
+
+  // save boost for the menu
+  towerBoost = tM.list[towerIndex].boost;
+
+  //Serial.println("towerBoost: " + String(towerBoost));
+
+  // write update price to global var and check if possible
+  if (lvl < 3) {
+    priceUpdate = getTowerPrice(type, lvl + 1);
+
+  } else {
+    priceUpdate = 0xff;
+  }
+
+  //Serial.println("priceUpdate: " + String(priceUpdate));
+
+  // calculte the costs buying the tower
+  priceSell = 0;
+  for (uint8_t i = 0; i <= lvl; i++) {
+    priceSell += getTowerPrice(type, i);
+  }
+
+  // div by 2 because of selling
+  priceSell /= 2;
 }
 
 void buttonsPlaying() {
@@ -276,7 +341,8 @@ void buttonsPlaying() {
 
       // check if cursor area is a tower
     } else if (isCursorAreaType(MAP_TOWER)) {
-      gameMode = MODE_PLAYING_TOWER;
+
+      checkPrepareTowerMenu();
 
     } else if (isCursorAreaType(MAP_FREE)) {
       setInfoMessage(INFO_JUST_A_HOUSE);
@@ -313,16 +379,31 @@ void buttonsPlayingMenuBuild() {
 void buttonsPlayingMenuTower() {
 
   if (arduboy.justReleased(A_BUTTON)) {
-    switch (indexTowerMenu) {
-      case TOWER_MENU_UPGRADE:
-        tryToUpgradeTower();
-        break;
-      case TOWER_MENU_INFO:
-        Serial.println("do something in tower menu");
-        break;
-      case TOWER_MENU_SELL:
-        sellTower();
-        return;
+
+    if (indexTowerMenu == TOWER_MENU_UPGRADE) {
+
+      tryToUpgradeTower();
+
+    } else if (indexTowerMenu == TOWER_MENU_INFO) {
+
+      // get tower where the cursor is
+      uint8_t towerIndex = tM.getTowerAt(xCursor, yCursor);
+
+      uint8_t type = tM.list[towerIndex].getType();
+      uint8_t lvl = tM.list[towerIndex].getLevel();
+
+      // set the buildmenu index to show infos of the current cursored tower
+      indexBuildMenu = type;
+
+      // use editor index as level marker
+      indexMapsEditor = lvl;
+
+      // now go to the info screen
+      gameMode = MODE_PLAYING_INFO;
+
+    } else if (indexTowerMenu == TOWER_MENU_SELL) {
+
+      sellTower();
     }
   }
 
@@ -342,6 +423,17 @@ void buttonsPlayingInfo() {
 
   if (arduboy.justReleased(A_BUTTON) || arduboy.justReleased(B_BUTTON))
     gameMode = MODE_PLAYING;
+
+  if (isTimeoutActive())
+    return;
+
+  // change tower
+  checkUpDown(indexBuildMenu, MENU_ITEMS_BUILD);
+
+  // change level
+  checkLeftRight(indexMapsEditor, 4);
+
+  setCursorTimeout();
 }
 
 void buttonsEditor() {
@@ -353,7 +445,7 @@ void buttonsEditor() {
     gameMode = MODE_EDITOR_MENU;
   }
 
-#ifdef PRINT_EDITOR_MAP
+#ifdef DEBUG_CREATE_MAPS
   // this is to create the maps
   if (isLongPressed(stateButtonA))
     saveMapToEEPROM(indexMapsEditor);
@@ -369,10 +461,6 @@ void buttonsEditorMenu() {
 
   if (isLongPressed(stateButtonB))
     gameMode = MODE_MAINMENU;
-
-  // delete the whole map
-  if (isLongPressed(stateButtonA) && indexBuildMenu == EDITOR_DELETE)
-    memset(mapComposition, MAP_FREE, NODES_COMPRESSED);
 
   if (isTimeoutActive())
     return;
@@ -402,7 +490,7 @@ void checkLongPress(int8_t &pressTime) {
 }
 
 void manipulateLongPress() {
-   
+
   // check if one of the states is max, which means longpress is active
   if (stateButtonA != INT8_MAX && stateButtonB != INT8_MAX)
     return;
@@ -416,11 +504,11 @@ bool skipLongPress() {
 
   // return because there was no long press
   if (!foundLongPress)
-    return false; 
+    return false;
 
   // return because there is still a button pressed
   if (foundLongPress && (stateButtonA > 0 || stateButtonB > 0))
-    return false; 
+    return false;
 
   // reset global var
   foundLongPress = false;
@@ -440,6 +528,13 @@ void checkNormalTime() {
   normalSpeedTime = millis();
 }
 
+void leaveToMainMenu() {
+
+  // return to main menu on both buttons
+  if (arduboy.justReleased(A_BUTTON) || arduboy.justReleased(B_BUTTON))
+    goToMainMenu();
+}
+
 void checkButtons() {
   // this is to know if this is a fastMode frame
   checkNormalTime();
@@ -452,7 +547,7 @@ void checkButtons() {
 
   //Serial.println(String(millis()) + " checkButtons() states a:" + String(stateButtonA) + " b:" + String(stateButtonB));
 
-  // ignore this frame because last one was a long press, to aviod justReleased functions 
+  // ignore this frame because last one was a long press, to aviod justReleased functions
   if (skipLongPress())
     return;
 
@@ -497,9 +592,16 @@ void checkButtons() {
 
     } else if (gameMode == MODE_PLAYING_INFO) {
       buttonsPlayingInfo();
+
+    } else if (gameMode == MODE_PLAYING_END) {
+      leaveToMainMenu();
     }
 
   } else if (inEditorMode(gameMode)) {
+
+    // delete the whole map
+    if (isLongPressed(stateButtonA) && indexBuildMenu == EDITOR_DELETE)
+      memset(mapComposition, MAP_FREE, NODES_COMPRESSED);
 
     // is global in editor to go back to main menu
     if (isLongPressed(stateButtonB)) {
@@ -519,9 +621,8 @@ void checkButtons() {
 
   } else if (gameMode == MODE_OPTIONS || gameMode == MODE_CREDITS) {
 
-    // return to main menu
-    if (arduboy.justReleased(A_BUTTON) || arduboy.justReleased(B_BUTTON))
-      goToMainMenu();
+    // leave on button a and b
+    leaveToMainMenu();
 
     // controll the options list with cursor
     if (gameMode == MODE_OPTIONS)

@@ -1,25 +1,37 @@
 #ifndef Projectiles_h
 #define Projectiles_h
 
-#define BIT_PROJECTILE_ACTIVE 7
+#define BIT_PROJECTILE_ACTIVE 3
+#define BIT_PROJECTILE_IMPACT 2
 
 struct projectile {
   int8_t x;
   int8_t y;
 
-  // highestBit: active, lowNibble: type
-  uint8_t activeType;
+  // highNibble: type, Bit3: active, Bit2: impact, Bits1&0: level  
+  uint8_t typeActiveLevel;
 
-  // is is mostly the tower sektor plus some extra info
+  // it is mostly the tower sektor plus some extra info
   uint8_t state;
 
+  // sadly this is a full byte
+  uint8_t boost;
+
   uint8_t getType() {
-    return getLowNibble(activeType);
+    return getHighNibble(typeActiveLevel);
   }
 
   void setType(uint8_t value) {
-    setLowNibble(activeType, value);
+    setHighNibble(typeActiveLevel, value);
   }
+
+  uint8_t getLevel() {
+    getLow2Bits(typeActiveLevel);
+  }
+
+  void setLevel(uint8_t value) {
+    setLow2Bits(typeActiveLevel, value);
+  }  
 
   void draw() {
     // strange switch thing, variable needs to be initialised here
@@ -80,7 +92,7 @@ struct projectile {
 
       // delete this flame if range is over
       if (levelRange == 0)
-        bitClear(activeType, BIT_PROJECTILE_ACTIVE);
+        bitClear(typeActiveLevel, BIT_PROJECTILE_ACTIVE);
     }
   }
 
@@ -120,15 +132,15 @@ struct projectileManager {
   projectile list[maximum];
 
   void clearProjectile(uint8_t index) {
-    bitClear(list[index].activeType, BIT_PROJECTILE_ACTIVE);
+    bitClear(list[index].typeActiveLevel, BIT_PROJECTILE_ACTIVE);
   }
 
   void setProjectileActive(uint8_t index) {
-    bitSet(list[index].activeType, BIT_PROJECTILE_ACTIVE);
+    bitSet(list[index].typeActiveLevel, BIT_PROJECTILE_ACTIVE);
   }
 
   bool isProjectileActive(uint8_t index) {
-    return getBit(list[index].activeType, BIT_PROJECTILE_ACTIVE);
+    return getBit(list[index].typeActiveLevel, BIT_PROJECTILE_ACTIVE);
   }
 
   void init() {
@@ -137,7 +149,7 @@ struct projectileManager {
     }
   }
 
-  void add(uint8_t x, uint8_t y, uint8_t type, int8_t state) {
+  void add(uint8_t x, uint8_t y, uint8_t type, uint8_t lvl, int8_t state, int8_t boost) {
 
     bool foundSlot = false;
     for (uint8_t i = 0; i < maximum; i++) {
@@ -150,11 +162,16 @@ struct projectileManager {
 
       //Serial.println("add p: " + String(i) + " of type: " + String(type));
 
+      // this is only relevant for the canon tower
+      bitClear(list[i].typeActiveLevel, BIT_PROJECTILE_IMPACT);
+
       // set values
       list[i].x = x;
       list[i].y = y;
       list[i].setType(type);
+      list[i].setLevel(lvl);      
       list[i].state = state;
+      list[i].boost = boost;     
       break;
     }
 

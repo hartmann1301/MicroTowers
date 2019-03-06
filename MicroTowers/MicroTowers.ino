@@ -37,14 +37,13 @@ projectileManager pM;
 mapMangager mM;
 
 #include "Info.h"
+#include "Eeprom.h"
 
 #include "Enemys.h"
 enemyManager eM;
 
 #include "Towers.h"
 towerManager tM;
-
-#include "Eeprom.h"
 
 #include "Menu.h"
 #include "Game.h"
@@ -54,7 +53,7 @@ void setup() {
 
 #ifdef USE_SERIAL
   Serial.begin(57600);
-  Serial.println(F("MicroTowers!"));
+  Serial.println("Micro Towers");
 #endif
 
 #ifdef ESP8266
@@ -64,20 +63,27 @@ void setup() {
   arduboy.setExternalButtonsHandler(getButtons);
 
   // i think this is only needed for the esp8266 eeprom emulation
-  EEPROM.begin(5 * NODES_COMPRESSED + 100);
+  EEPROM.begin(EEPROM_NEEDED_BYTES);
 #endif
 
   arduboy.begin();
   arduboy.setFrameRate(FRAMES_PRO_SEC);
 
- // initialise the managers
- tM.init();
- eM.init();
+  // initialise the managers
+  tM.init();
+  eM.init();
+  aM.init();
+
+  // check if game was played before
+  initEEPROM();
+
+  // get data from eeprom
+  loadEEPROM();
 
   goToMainMenu();
 
   // some start tone
-  //sound.tone(200, 200, 300, 200);
+  sound.tone(200, 200, 300, 200);
 }
 
 void loop() {
@@ -97,7 +103,8 @@ void loop() {
 
   checkButtons();
 
-  if (!inMapsListMode(gameMode))
+  
+  if (!inMapsListMode(gameMode) && gameMode != MODE_PLAYING_INFO && gameMode != MODE_OPTIONS && gameMode != MODE_CREDITS)
     updateGame();
 
   mainScheduler();
@@ -107,10 +114,10 @@ void loop() {
   //mF.setCursor(80, 58);
   //mF.print(String(micros() - start));
 
-  mF.setCursor(2, 0);
+  //mF.setCursor(2, 0);
   //mF.print(gameMode);
 
-  mF.print(eM.count());
+  //mF.print(eM.count());
 #endif
 
   arduboy.display();

@@ -1,10 +1,10 @@
 #ifndef Map_h
 #define Map_h
 
-#define PRINT_EDITOR_MAP
+//#define DEBUG_CREATE_MAPS
 
 #ifdef ESP8266
-#define DEBUG_PATH_MAP
+//#define DEBUG_PATH_MAP
 //#define DEBUG_PATH_PRINT
 #endif
 
@@ -71,7 +71,7 @@ struct mapMangager {
 
     // read data for 4 bytes, from eeprom or program space
     uint8_t rawData;
-    if (gameMode == MODE_MAPS_EDITOR || gameMode == MODE_EDITOR) {
+    if (gameMode == MODE_MAPS_EDITOR) {
 
       if (mapNumber == 0) {
         // read from global map array because map 0 was copied here from eeprom
@@ -300,26 +300,6 @@ struct mapMangager {
     }
   }
 
-  void checkNeighbour(pathList & lNext, bool * lClosed, int16_t i) {
-    // only valid nodes
-    if (i < 0 || i >= NODES)
-      return;
-
-    if (lClosed[i] == true)
-      return;
-
-    uint8_t tmpData = getCurrentMapNode(i);
-
-    if (tmpData == MAP_ROCK || tmpData == MAP_TOWER)
-      return;
-
-#ifdef DEBUG_PATH_PRINT
-    Serial.println(" found neighbour:" + String(i));
-    yield();
-#endif
-    lNext.add(i);
-  }
-
   void drawMapPreview(uint8_t xOffset, int16_t yOffset, uint8_t mapNumber) {
 
     // draw frame around minimap
@@ -371,6 +351,26 @@ struct mapMangager {
     }
   }
 
+  void checkNeighbour(pathList & lNext, int16_t i) {
+    // only valid nodes
+    if (i < 0 || i >= NODES)
+      return;
+
+    if (arduboy.sBuffer[i] == IS_CLOSED)
+      return;
+
+    uint8_t tmpData = getCurrentMapNode(i);
+
+    if (tmpData == MAP_ROCK || tmpData == MAP_TOWER)
+      return;
+
+#ifdef DEBUG_PATH_PRINT
+    Serial.println(" found neighbour:" + String(i));
+    yield();
+#endif
+    lNext.add(i);
+  }
+
   bool findPath() {
 
     // reset this bool to find new path only once
@@ -380,9 +380,6 @@ struct mapMangager {
     pathList openList;
     pathList nextList;
 
-    // TODO: find a bette way to solve this!!!!!!1
-    bool closedList[NODES];
-
 #ifdef DEBUG_PATH_MAP
     uint32_t startMap = micros();
 #endif
@@ -390,7 +387,9 @@ struct mapMangager {
     // init the mapCosts with number values
     for (uint8_t i = 0; i < NODES; i++) {
       mapCosts[i] = i;
-      closedList[i] = false;
+
+      // use the first NODES bytes of the display buffer for the closed list     
+      arduboy.sBuffer[i] = NOT_CLOSED;
     }
 
     // set end position
@@ -416,18 +415,18 @@ struct mapMangager {
 #endif
         // set costs and mark this node as closed
         mapCosts[n] = currentCost;
-        closedList[n] = true;
+        arduboy.sBuffer[n] = IS_CLOSED;
 
         // check top and bottom neighbours
-        checkNeighbour(nextList, closedList, n - ROWS);
-        checkNeighbour(nextList, closedList, n + ROWS);
+        checkNeighbour(nextList, n - ROWS);
+        checkNeighbour(nextList, n + ROWS);
 
         // check top and bottom neighbours
         if (n % ROWS != 0)
-          checkNeighbour(nextList, closedList, n - 1);
+          checkNeighbour(nextList, n - 1);
 
         if (n % ROWS != ROWS - 1)
-          checkNeighbour(nextList, closedList, n + 1);
+          checkNeighbour(nextList, n + 1);
       }
 
       // add new neightbours to openList
@@ -437,7 +436,7 @@ struct mapMangager {
 
         // delete the unused node costs/nums
         for (uint8_t i = 0; i < NODES; i++) {
-          if (closedList[i] == false)
+          if (arduboy.sBuffer[i] == NOT_CLOSED)
             mapCosts[i] = 0xff;
         }
 
@@ -446,6 +445,9 @@ struct mapMangager {
 
         printMap();
 #endif
+        // because i manipulated the buffer
+        arduboy.fillScreen(WHITE);
+
         return foundEntry;
       }
 

@@ -35,21 +35,7 @@ struct tower {
   }
 
   uint8_t getRange() {
-    // get the type of this tower
-    uint8_t type = getType();
-
-    // start with the minimal range of every tower
-    uint8_t range = 10;
-
-    // add tower specific range times 2
-    range += getProgMem(towerBasicRanges, type) * 2;
-
-    // add tower specific range plus pro level
-    range += getProgMem(towerExtraRanges, type) * getLevel();
-
-    //Serial.println("Tower: " + String(type) + " has Range of:" + String(range));
-
-    return range;
+    return getTowerRange(getType(), getLevel());
   }
 
   void drawRange() {
@@ -113,8 +99,8 @@ struct tower {
         //if (isFramesMod2)
         //  arduboy.drawLine(getCenterX(), getCenterY(), eM.list[i].getCenterX(), eM.list[i].getCenterY(), BLACK);
 
-        // TODO:
-        eM.list[i].damage(1, TOWER_SHOCK);
+        // looks a bit strange but it works        
+        eM.list[i].damage(getTowerDamage(TOWER_SHOCK, getLevel(), boost), TOWER_SHOCK);
       }
 
       // set new target if enemy has more map progress
@@ -277,7 +263,7 @@ struct tower {
       reloadShockAndLaser();
 
       // do laser dmg
-      eM.list[target].damage(1, TOWER_LASER);
+      eM.list[target].damage(getTowerDamage(TOWER_LASER, lvl, boost), TOWER_LASER);
 
       if (isFramesMod2)
         arduboy.drawLine(xStart, yStart, xTarget, yTarget, BLACK);
@@ -327,10 +313,7 @@ struct tower {
 
       } else {
         // get tower specific reload time
-        reloadTime = getProgMem(towerReloadTimes, type);
-
-        // reduce depending on current level
-        reloadTime -= lvl;
+        reloadTime = getTowerReload(type, lvl);
       }
 
       // set reload variable
@@ -338,7 +321,7 @@ struct tower {
     }
 
     // shoot the bullet
-    pM.add(xStart, yStart, type, projState);
+    pM.add(xStart, yStart, type, lvl, projState, boost);
   }
 
   void draw() {
@@ -346,49 +329,17 @@ struct tower {
     uint8_t x = getX();
     uint8_t y = getY();
     uint8_t lvl = getLevel();
-    uint8_t type = getType();
 
     // draw socket depending on level
     drawTowerSocket(x, y, lvl);
 
-    // draw the range of this tower
-    if (false)
-      arduboy.drawCircle(getCenterX(), getCenterY(), getRange(), BLACK);
-
-    if (isRotatingTower(type)) {
-
-      // TODO: draw 1/4 of those towers fast
-
-      // get sektor
-      uint8_t sektor = getSektor();
-
-      // set offset for correct level and fine rotation
-      uint8_t offset = lvl % 4 + (sektor % 4) * 4;
-
-      // set tower offset
-      offset += type * 16;
-
-      // divide again by 4 because sprite can only rotate every 90 degrees
-      uint8_t rotation = sektor / 4;
-
-      // rotate 180° because the sprite looks to the left side
-      rotation = (rotation + 2) % 4;
-
-      //  Serial.println("drawSlow:" + String(type) + " offset " + String(offset) + " rotation " + String(rotation));
-      drawBitmapSlow(x + 2, y + 2, allTowers, 7, 7, offset, rotation);
-
-    } else {
-      // offset is a huge value, because the five other towers are on top
-      uint8_t offset = lvl % 4 + (type - TOWER_SHOCK) * 4 + 16 * 6;
-
-      // can be drawn fast
-      drawBitmapFast(x + 2, y + 2, allTowers, 7, offset, false);
-    }
+    // draw weapon
+    drawTowerWeapon(x, y, getType(), getSektor(), lvl);
   }
 };
 
 struct towerManager {
-  static const uint8_t maximum = 20;
+  static const uint8_t maximum = 24;
   tower list[maximum];
 
   void clearTower(uint8_t towerIndex) {

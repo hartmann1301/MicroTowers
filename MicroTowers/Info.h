@@ -4,6 +4,11 @@
 #define yIcon 57
 #define yText (yIcon + 1)
 
+void setInfoTextCursor(int8_t xPos) {
+
+  mF.setCursor(xPos, yText);
+}
+
 void setInfoMessage(uint8_t infoType) {
 
   // set default screen time in frames
@@ -27,7 +32,7 @@ bool drawInfoMessage() {
   if (infoMsgTimeout == 0)
     return false;
 
-  mF.setCursor(1, yText);
+  setInfoTextCursor(1);
 
   // print message, 18 letters fit in easiely more if 1 and i appears often
   if (infoMsgType == INFO_FORBIDDEN_BUILD) {
@@ -45,6 +50,9 @@ bool drawInfoMessage() {
 
   } else if (infoMsgType == INFO_SEND_NEXT_WAVE) {
     mF.print(F("A: TO SEND WAVE"));
+
+  } else if (infoMsgType == INFO_TO_LESS_COINS) {
+    mF.print(F("NOT ENOUGH COINS"));
 
   }
 
@@ -73,7 +81,7 @@ void drawMainMenuText(int16_t xWrite, uint8_t index) {
   if (xWrite < INT8_MIN || xWrite > INT8_MAX)
     return;
 
-  mF.setCursor(xWrite, yText);
+  setInfoTextCursor(xWrite);
 
   switch (index) {
     case 0:
@@ -87,6 +95,9 @@ void drawMainMenuText(int16_t xWrite, uint8_t index) {
       break;
     case 3:
       mF.print(F("CREDITS"));
+      break;
+    case 4:
+      mF.print(F("RESET GAME"));
       break;
   }
 }
@@ -102,10 +113,33 @@ void drawMainMenuRank() {
   // bottom thingi
   arduboy.drawRect(xPos, 51, xWidth, 3, WHITE);
 
-  // draw rank symbol
-  drawBitmapFast(xPos, 42, rankSymbols, xWidth, 0, false, WHITE);
-  drawBitmapFast(xPos, 37, rankSymbols, xWidth, 0, false, WHITE);
-  drawBitmapFast(xPos, 32, rankSymbols, xWidth, 0, false, WHITE);
+  // unlocked maps is also the rank
+  uint8_t yPos = 42;
+  for (uint8_t i = 0; i < unlockedMaps / 2 - 3; i++) {
+
+    // draw a rank symbol
+    drawBitmapFast(xPos, yPos, rankSymbols, xWidth, i / 3, false, WHITE);
+
+    //Serial.println(String(i) + " draw at yPos:" + String(yPos));
+
+    // formula to set yPos for next symbol : yPos -= (5 + (i + 1)/3 * 2);
+    yPos -= 5;
+    if (i > 1)
+      yPos -= 2;
+
+    if (i > 4)
+      yPos -= 2;
+  }
+}
+
+void drawLeftHint(uint8_t xPos) {
+  setInfoTextCursor(xPos);
+  mF.print(F("<"));
+}
+
+void drawRightHint(uint8_t xPos) {
+  setInfoTextCursor(xPos);
+  mF.print(F(">"));
 }
 
 void drawMainMenu() {
@@ -127,15 +161,11 @@ void drawMainMenu() {
   // draw only if scrolling is over
   if (indexMainMenuDelayed == indexInPixels)  {
     // draw hints
-    if (indexMainMenu > 0) {
-      mF.setCursor(22, yText);
-      mF.print(F("<"));
-    }
+    if (indexMainMenu > 0)
+      drawLeftHint(22);
 
-    if (indexMainMenu < MAINMENU_ITEMS - 1) {
-      mF.setCursor(84, yText);
-      mF.print(F(">"));
-    }
+    if (indexMainMenu < MAINMENU_ITEMS - 1)
+      drawRightHint(84);
   }
 
   for (int8_t i = 0; i < MAINMENU_ITEMS; i++) {
@@ -146,14 +176,14 @@ void drawMainMenu() {
 
 void drawInfosEditor() {
 
-  mF.setCursor(1, yText);
+  setInfoTextCursor(1);
 
   if (!isLongPressInfo(stateButtonB)) {
 
     mF.print(F("EDITOR"));
 
     // explains what these editor symbols mean
-    mF.setCursor(64, yText);
+    setInfoTextCursor(64);
 
     // draw icon because side menu disappeared
     if (gameMode == MODE_EDITOR) {
@@ -186,7 +216,7 @@ void drawInfosEditor() {
 
 void drawInfosOptionsCredits() {
 
-  mF.setCursor(1, yText);
+  setInfoTextCursor(1);
   mF.print(F("PRESS B TO EXIT"));
 }
 
@@ -196,62 +226,118 @@ void drawCoins(uint8_t xPos, uint8_t coins) {
   drawBitmapFast(xPos, yIcon, symbolSet, ICON_WIDTH, SYMBOL_COIN, false);
 
   // draw current coins
-  mF.setCursor(xPos + 8, yText);
+  setInfoTextCursor(xPos + 8);
   mF.print(coins);
 }
 
 void drawInfosPlaying() {
 
   // draw heart icon
-  drawBitmapFast(47, yIcon, symbolSet, ICON_WIDTH, SYMBOL_HEART, false);
+  drawBitmapFast(42, yIcon, symbolSet, ICON_WIDTH, SYMBOL_HEART, false);
 
   // draw current life
-  mF.setCursor(55, yText);
+  setInfoTextCursor(50);
   mF.print(currentLifePoints);
 
   // draw wave icon
-  drawBitmapFast(82, yIcon, symbolSet, ICON_WIDTH, SYMBOL_WAVE, false);
+  setInfoTextCursor(82);
+  if (waveType == ENEMY_IS_DEFAULT) {
+    // D for default
+    mF.print(F("D"));
 
-  // draw current life
-  mF.setCursor(90, yText);
-  mF.print(waveCounter);
+  } else if (waveType == ENEMY_MIX) {
+    // M for mixed wave
+    mF.print(F("M"));
+
+  } else {
+    // draw an icon for the next wave
+    drawBitmapFast(82, yText, waveTypes, 6, waveType - ENEMY_IS_FAST, false);
+  }
+
+  // draw wave counter
+  setInfoTextCursor(90);
+  mF.print(waveCounter + 1);
 }
+
+void drawCurrentTowerName() {
+  switch (indexBuildMenu) {
+    case TOWER_GATLING:
+      mF.print(F("MINIGUN"));
+      break;
+    case TOWER_CANNON:
+      mF.print(F("CANNON"));
+      break;
+    case TOWER_LASER:
+      mF.print(F("LASER"));
+      break;
+    case TOWER_FLAME:
+      mF.print(F("FLAME"));
+      break;
+    case TOWER_RAILGUN:
+      mF.print(F("RAILGUN"));
+      break;
+    case TOWER_FROST:
+      mF.print(F("FROST"));
+      break;
+    case TOWER_SHOCK:
+      mF.print(F("SHOCK"));
+      break;
+    case TOWER_SUPPORT:
+      mF.print(F("SUPPORT"));
+      break;
+  }
+}
+
+void drawInfosPlayingInfo() {
+
+  setInfoTextCursor(1);
+
+  // write the name of index build menu what is "cursor in info screen"
+  drawCurrentTowerName();
+
+  setInfoTextCursor(58);
+  mF.print(F("LVL"));
+
+  // draw left hint
+  if (indexMapsEditor > 0)
+    drawLeftHint(86);
+
+  // draw tower level index incremented to have levels 1-4
+  setInfoTextCursor(94);
+  mF.print(indexMapsEditor + 1);
+
+  // draw right hint
+  if (indexMapsEditor < 3)
+    drawRightHint(102);
+
+  // clear space for tower symbol
+  arduboy.fillRect(127 - 13, 63 - 13, 13, 13, WHITE);
+
+  const uint8_t xTower = 127 - 11;
+  const uint8_t yTower = 63 - 11;
+
+  // draw socket depending on level
+  drawTowerSocket(xTower, yTower, indexMapsEditor);
+
+  // should rotate slowly
+  uint32_t rotation = (gameFrames / 8) % 16;
+
+  // draw tower
+  drawTowerWeapon(xTower, yTower, indexBuildMenu, rotation, indexMapsEditor);
+}
+
 
 void drawInfosPlayingMenu() {
 
-  mF.setCursor(30, yText);
+  setInfoTextCursor(32);
 
   if (gameMode == MODE_PLAYING_BUILD) {
 
-    switch (indexBuildMenu) {
-      case TOWER_GATLING:
-        mF.print(F("MINIGUN"));
-        break;
-      case TOWER_CANNON:
-        mF.print(F("CANNON"));
-        break;
-      case TOWER_LASER:
-        mF.print(F("LASER"));
-        break;
-      case TOWER_FLAME:
-        mF.print(F("FLAME"));
-        break;
-      case TOWER_RAILGUN:
-        mF.print(F("RAILGUN"));
-        break;
-      case TOWER_FROST:
-        mF.print(F("FROST"));
-        break;
-      case TOWER_SHOCK:
-        mF.print(F("SHOCK"));
-        break;
-      case TOWER_SUPPORT:
-        mF.print(F("SUPPORT"));
-        break;
-    }
+    // write the name of index build menu
+    drawCurrentTowerName();
 
     // draw price of the tower
-    drawCoins(88, pgm_read_byte(towerPrices + indexBuildMenu));
+    drawCoins(88, getTowerPrice(indexBuildMenu, 0));
 
   } else if (gameMode == MODE_PLAYING_TOWER) {
 
@@ -259,39 +345,65 @@ void drawInfosPlayingMenu() {
 
     switch (indexTowerMenu) {
       case TOWER_MENU_UPGRADE:
-        mF.print(F("UPGRADE"));
 
-        // draw price of the upgrade
-        coins = 20;
+        if (currentTowerLvl == 3) {
+          mF.print(F("MAX LEVEL"));
+
+        } else {
+          mF.print(F("UPGRADE"));
+
+          // draw price of the upgrade
+          coins = priceUpdate;
+        }
         break;
+
       case TOWER_MENU_INFO:
         mF.print(F("INFOS"));
 
-        // get reward for selling the tower with upgrades
-        coins = 7;
-        break;
-      case TOWER_MENU_SELL:
-        mF.print(F("SELL"));
+        // give infos about boost only if boosted
+        if (towerBoost != 0) {
+
+          // draw the level 3 support tower icon
+          drawBitmapFast(86, 57, allTowers, ICON_WIDTH, 6 * 16 + 7);
+
+          setInfoTextCursor(98);
+          mF.print(towerBoost);
+        }
 
         // yes this is a return, because there will be no price
         return;
+
+      case TOWER_MENU_SELL:
+        mF.print(F("SELL"));
+
+        // get reward for selling the tower with upgrades
+        coins = priceSell;
+        break;
     }
 
     // TODO: return if tower has max level
 
     // draw price for upgrade or reward for sell
-    drawCoins(88, coins);
+    drawCoins(86, coins);
   }
 }
 
 void drawInfosPlayingAll() {
 
-  // draw the coins the play has
-  drawCoins(2, currentCoins);
+  // the gameover screen will be painted in main scheduler
+  if (gameMode == MODE_PLAYING_END)
+    return;
 
-  // show that you in fast mode right now
-  if (!isNormalSpeed)
-    drawBitmapFast(112, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_FASTMODE, false);
+  // info screen need all the space
+  if (gameMode != MODE_PLAYING_INFO) {
+
+    // draw the coins the play has
+    drawCoins(2, currentCoins);
+
+    // show that you in fast mode right now
+    if (!isNormalSpeed)
+      drawBitmapFast(112, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_FASTMODE, false);
+  }
 
   if (gameMode == MODE_PLAYING) {
     drawInfosPlaying();
@@ -300,10 +412,21 @@ void drawInfosPlayingAll() {
     drawInfosPlayingMenu();
 
   } else if (gameMode == MODE_PLAYING_INFO) {
-    // this says just return with b
-    drawInfosOptionsCredits();
+    drawInfosPlayingInfo();
   }
 }
+
+void drawGameOverInfo() {
+  setInfoTextCursor(1);
+  mF.print(F("GAMEOVER"));
+
+  setInfoTextCursor(66);
+  mF.print(F("SCORE"));
+
+  setInfoTextCursor(108);
+  mF.print(currentScore);
+}
+
 
 void drawInfoLine() {
 
