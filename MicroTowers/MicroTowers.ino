@@ -36,8 +36,8 @@ projectileManager pM;
 #include "Map.h"
 mapMangager mM;
 
-#include "Info.h"
 #include "Eeprom.h"
+
 
 #include "Enemys.h"
 enemyManager eM;
@@ -45,6 +45,7 @@ enemyManager eM;
 #include "Towers.h"
 towerManager tM;
 
+#include "Info.h"
 #include "Menu.h"
 #include "Game.h"
 #include "Buttons.h"
@@ -87,11 +88,12 @@ void setup() {
 }
 
 void loop() {
+    
   // if normal speed is false it will be max speed
   if (!(arduboy.nextFrame()) && isNormalSpeed)
     return;
 
-#ifdef DEBUG_FRAME_TIME
+#ifdef DEBUG_FRAMES
   uint32_t start = micros();
 #endif
 
@@ -102,22 +104,20 @@ void loop() {
   isFramesMod2 = gameFrames % 2;
 
   checkButtons();
-
   
-  if (!inMapsListMode(gameMode) && gameMode != MODE_PLAYING_INFO && gameMode != MODE_OPTIONS && gameMode != MODE_CREDITS)
+  if (!inMapsListMode(gameMode) && gameMode != MODE_PLAYING_INFO && gameMode != MODE_CREDITS)
     updateGame();
 
   mainScheduler();
 
-#ifdef DEBUG_FRAME_TIME
+#ifdef DEBUG_FRAMES
   // pirnt time for a frame to screen
   //mF.setCursor(80, 58);
   //mF.print(String(micros() - start));
 
-  //mF.setCursor(2, 0);
-  //mF.print(gameMode);
-
-  //mF.print(eM.count());
+  arduboy.fillRect(1, 1, 20, 6, WHITE);
+  mF.setCursor(2, 1);
+  mF.print(getFramesPerSecond());
 #endif
 
   arduboy.display();

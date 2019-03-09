@@ -64,6 +64,29 @@ uint8_t getTowerPrice(uint8_t type, uint8_t lvl) {
   return price;
 }
 
+uint16_t getPriceUpdate() {
+
+  // write update price to global var and check if possible
+  if (towerLevel < 3) {
+    return getTowerPrice(towerType, towerLevel + 1);
+
+  } else {
+    return NO_PRICE;
+  }
+}
+
+uint16_t getPriceSell() {
+
+  // calculte the costs buying the tower
+  uint16_t priceSell = 0;
+  for (uint8_t i = 0; i <= towerLevel; i++) {
+    priceSell += getTowerPrice(towerType, i);
+  }
+
+  // div by 2 because of lost value
+  return priceSell / 2;
+}
+
 uint8_t getTowerReload(uint8_t type, uint8_t lvl) {
 
   uint8_t reloadFrames = getProgMem(towerReloadTimes, type);
@@ -132,7 +155,7 @@ uint8_t getyR(uint8_t index) {
 uint16_t getEnemyHp(uint8_t wave, uint8_t mapDifficulty) {
 
   // minimal value for hp
-  uint16_t hp = 100;
+  uint16_t hp = 200;
 
   for (uint8_t i = 1; i < wave + 1; i++) {
 
@@ -149,10 +172,10 @@ uint16_t getEnemyHp(uint8_t wave, uint8_t mapDifficulty) {
 }
 
 void calculateScore() {
-  //Serial.println("currentLifePoints: " + String(currentLifePoints) + " waveCounter: " + String(waveCounter) + " currentCoins: " + String(currentCoins));
+  //Serial.println("lifePoints: " + String(lifePoints) + " waveCounter: " + String(waveCounter) + " currentCoins: " + String(currentCoins));
 
   // write to global variable
-  currentScore = uint16_t(waveCounter * 10) + currentLifePoints + currentCoins / 2;
+  currentScore = uint16_t(waveCounter * 10) + lifePoints + currentCoins / 2;
 
   //Serial.println("is score: " + String(currentScore));
 }
@@ -319,10 +342,6 @@ void fillChessRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color) {
 
 void drawCursor() {
 
-  // the cursor is only drawn while playing or in editor mode
-  if (gameMode < MODE_PLAYING || gameMode > MODE_EDITOR_MENU)
-    return;
-
   // get the pixel positions
   uint8_t xPos = xCursor * RASTER + RASTER_OFFSET_X;
   uint8_t yPos = yCursor * RASTER + RASTER_OFFSET_Y;
@@ -346,11 +365,11 @@ void drawCursor() {
     }
   }
 
-  // the cursor will not be animated in the side menu modes
-  if (gameMode != MODE_PLAYING && gameMode != MODE_EDITOR)
+  // the cursor will not be animated in the editor side menu
+  if (gameMode == MODE_EDITOR_MENU)
     return;
 
-  // do the increments only every default frame time
+  // do the animation increments only every default frame time
   if (isFastSpeedFrame)
     return;
 
@@ -371,13 +390,14 @@ void drawTowerWeapon(uint8_t x, uint8_t y, uint8_t type, uint8_t sektor, uint8_t
 
   if (isRotatingTower(type)) {
 
-    // TODO: draw 1/4 of those towers fast
-
     // set offset for correct level and fine rotation
     uint8_t offset = lvl % 4 + (sektor % 4) * 4;
 
     // set tower offset
     offset += type * 16;
+
+    // TODO: try to draw this tower fast
+    //if (sektor < 4)
 
     // divide again by 4 because sprite can only rotate every 90 degrees
     uint8_t rotation = sektor / 4;
@@ -396,6 +416,37 @@ void drawTowerWeapon(uint8_t x, uint8_t y, uint8_t type, uint8_t sektor, uint8_t
     drawBitmapFast(x + 2, y + 2, allTowers, 7, offset);
   }
 }
+
+#ifdef DEBUG_FRAMES
+
+uint8_t getFramesPerSecond() {
+
+  // get the current second
+  secondsNow = millis() / 1000;
+
+  //Serial.println("secondsNow:" + String(secondsNow) + " at mapIndex:" + String(mapIndex));
+
+  if (secondsNow != secondsCurrent) {
+
+    // to reset only with every new second
+    secondsCurrent = secondsNow;
+
+    // save the last frames per second
+    framesCurrent = framesNow;
+
+    // reset the counter
+    framesNow = 0;
+
+  } else {
+    // count
+    framesNow++;
+  }
+
+  return framesCurrent;
+}
+
+
+#endif
 
 uint8_t integerSqrt(uint8_t n) {
   if (n < 2)

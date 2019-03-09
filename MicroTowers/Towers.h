@@ -34,13 +34,21 @@ struct tower {
     return getHighNibble(stateLevel);
   }
 
+  uint8_t getRange(uint8_t type) {
+    return getTowerRange(type, getLevel());
+  }
+
   uint8_t getRange() {
-    return getTowerRange(getType(), getLevel());
+    return getRange(getType());
+  }
+
+  void drawRange(uint8_t type) {
+    // a circle to show the current range
+    arduboy.drawCircle(getCenterX(), getCenterY(), getRange(type), BLACK);
   }
 
   void drawRange() {
-    // a circle to show the current range
-    arduboy.drawCircle(getCenterX(), getCenterY(), getRange(), BLACK);
+    drawRange(getType());
   }
 
   // setters
@@ -99,7 +107,7 @@ struct tower {
         //if (isFramesMod2)
         //  arduboy.drawLine(getCenterX(), getCenterY(), eM.list[i].getCenterX(), eM.list[i].getCenterY(), BLACK);
 
-        // looks a bit strange but it works        
+        // looks a bit strange but it works
         eM.list[i].damage(getTowerDamage(TOWER_SHOCK, getLevel(), boost), TOWER_SHOCK);
       }
 
@@ -329,12 +337,21 @@ struct tower {
     uint8_t x = getX();
     uint8_t y = getY();
     uint8_t lvl = getLevel();
+    uint8_t type = getType();
 
     // draw socket depending on level
     drawTowerSocket(x, y, lvl);
 
-    // draw weapon
-    drawTowerWeapon(x, y, getType(), getSektor(), lvl);
+    //
+    if (type == TOWER_PROTOTYPE) {
+
+      // draw range depending on selected tower
+      drawRange(indexBuildMenu);
+
+    } else {
+      // draw weapon
+      drawTowerWeapon(x, y, getType(), getSektor(), lvl);
+    }
   }
 };
 
@@ -439,7 +456,7 @@ struct towerManager {
 
         list[testTowerIndex].boost += boosterLevel * BOOST_PRO_LVL;
 
-        //Serial.println(" boost to: " + String(list[testTowerIndex].boost));    
+        //Serial.println(" boost to: " + String(list[testTowerIndex].boost));
       }
     }
   }

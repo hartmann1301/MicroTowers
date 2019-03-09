@@ -128,7 +128,7 @@ struct projectile {
 };
 
 struct projectileManager {
-  static const uint8_t maximum = 40;
+  static const uint8_t maximum = 50;
   projectile list[maximum];
 
   void clearProjectile(uint8_t index) {

@@ -6,6 +6,49 @@
 #define BIT_ENEMY_ACTIVE  6
 #define BIT_LOOKS_LEFT    7
 
+// prototype will be declared in info.h
+void setInfoMessage(uint8_t infoType);
+
+void checkForMapUnlocks() {
+
+  // only in campain mode maps can be unlocked
+  if (!isInCampainMode)
+    return;
+
+  // no star no unlock
+  if (currentScore < POINTS_PRO_STAR)
+    return;
+
+  // all maps are already unlocked
+  if (unlockedMaps == MAPS_IN_CAMPAIN)
+    return;
+
+  // played not the last unlocked map
+  if (indexMapsCampain == unlockedMaps - 1)
+    return;
+
+  // set a popup message
+  setInfoMessage(INFO_UNLOCKED_MAP);
+
+  // congrats, a new map
+  unlockedMaps++;
+}
+
+void endGame() {
+
+  // calulate score
+  calculateScore();
+
+  // write score to eeprom
+  updateEepromScore();
+
+  // unlocks levels if everything fits
+  checkForMapUnlocks();
+
+  // this is the gameover mode
+  gameMode = MODE_PLAYING_END;
+}
+
 struct enemy {
   int8_t x;
   int8_t y;
@@ -85,8 +128,10 @@ struct enemy {
 
   void damageHQ() {
 
-    if (currentLifePoints > 10) {
-      currentLifePoints -= 10;
+    if (lifePoints > 10) {
+      lifePoints -= 10;
+
+      sound.tones(soundSomethingGood);
 
       return;
     }
@@ -94,16 +139,10 @@ struct enemy {
     //Serial.println("Game is over");
 
     // set to zero for score calculations
-    currentLifePoints = 0;
+    lifePoints = 0;
 
-    // calulate score
-    calculateScore();
-
-    // write score to eeprom
-    updateEepromScore();
-
-    // this is the gameover mode
-    gameMode = MODE_PLAYING_END;
+    // does all the score things and gameMode stuff
+    endGame();
   }
 
   void update() {
@@ -184,8 +223,8 @@ struct enemy {
     if (dmgType == TOWER_FROST) {
       uint8_t currentFrozen = getFrozen();
 
-      if (currentFrozen < 14)
-        setFrozen(currentFrozen + 2);
+      if (currentFrozen < 13)
+        setFrozen(currentFrozen + 3);
     }
 
     if (dmg == 0)
@@ -247,6 +286,9 @@ struct enemy {
       return false;
 
     } else {
+      // add some coins to the player
+      giveCoins();
+
       //Serial.println("Enemy Died");
       die();
 
@@ -258,14 +300,16 @@ struct enemy {
     }
   }
 
-  void die() {
+  void giveCoins() {
     // give player some coins
     currentCoins += getEnemyReward(waveCounter);
 
     // there is only space for 3 letters
     if (currentCoins > 999)
       currentCoins = 999;
+  }
 
+  void die() {
     // delete this enemy from the manager list
     bitClear(pathStorage, BIT_ENEMY_ACTIVE);
   }
@@ -275,7 +319,7 @@ struct enemy {
     // twopods are a bit to high, so minus one pixel of yPos
     int8_t yPos = y;
     if (enemysRace == ENEMY_RACE_TWOPOD)
-      yPos--;
+      yPos -= 2;
 
     uint16_t oneHealthPixel = currentWaveHp / 7;
 
@@ -379,7 +423,7 @@ struct enemyManager {
       enemysOfWave = ENEMYS_IN_WAVE;
 
       // calculate the hp of the current wave
-      currentWaveHp = getEnemyHp(waveCounter, currentMapDifficulty);
+      currentWaveHp = getEnemyHp(waveCounter, mapDifficulty);
 
       // fast enemys are a bit weaker
       if (waveType == ENEMY_IS_FAST)
@@ -392,12 +436,20 @@ struct enemyManager {
     // wave if over if no enemy is left to spawn and map is empty
     if (count() == 0 && enemysOfWave == 0) {
 
+      if (gameMode != MODE_MAINMENU)
+        sound.tones(soundFinishedWave);
+
       // to be able to start next wave
       sendWaveStatus = WAVE_FINISHED;
 
       // increment the levels waves
-      if (waveCounter < MAXIMAL_WAVE)
+      if (waveCounter < MAXIMAL_WAVE) {
         waveCounter++;
+
+      } else {
+        // to end the game
+        endGame();
+      }
 
       //  holds what kinds of enemys will be sent, see ENEMYS enum
       waveType = waveCounter % TYPES_OF_WAVES;
@@ -417,7 +469,7 @@ struct enemyManager {
           enemysRace = 0;
         }
 
-        Serial.println("change Race " + String(waveType) + " to " + String(enemysRace));
+        //Serial.println("change Race " + String(waveType) + " to " + String(enemysRace));
       }
     }
 

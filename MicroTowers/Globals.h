@@ -8,7 +8,7 @@
 
 #define USE_SERIAL
 //#define DEBUG_ADD_FUNCTIONS
-#define DEBUG_FRAME_TIME
+#define DEBUG_FRAMES
 
 #ifdef ESP8266
 #define PS2_DAT       D6 // brown/green
@@ -19,6 +19,13 @@ SSD1306Brzo oled(OLED_I2C_ADRESS, D2, D1);
 
 #include <PS2X_lib.h>
 PS2X ps2x;
+#endif
+
+#ifdef DEBUG_FRAMES
+uint8_t framesNow = 0;
+uint8_t framesCurrent = 0;
+uint8_t secondsNow = 0;
+uint8_t secondsCurrent = 255;
 #endif
 
 Arduboy2Base arduboy;
@@ -36,6 +43,7 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define IS_CLOSED           true
 #define NOT_CLOSED          false
 
+#define NO_PRICE            255
 #define NO_INDEX            255
 #define BUFFER_MAX          (WIDTH*HEIGHT/8)
 
@@ -44,7 +52,8 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define RASTER              6
 #define HALF_RASTER         (RASTER / 2)
 
-#define MAPS_IN_CAMPAIN      20
+#define MAPS_IN_CAMPAIN     20
+#define POINTS_PRO_STAR     200
 
 #define RASTER_OFFSET_X     1
 #define RASTER_OFFSET_Y     0
@@ -52,7 +61,7 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define LONGPRESS_INFO      15
 #define LONGPRESS_TIME      30
 
-#define MAINMENU_ITEMS      5
+#define MAINMENU_ITEMS      4
 #define MAPS_IN_CAMPAIN     20
 #define EDITOR_MAP_SLOTS    5
 
@@ -95,10 +104,17 @@ enum {
   MODE_PLAYING_END,
   MODE_EDITOR,
   MODE_EDITOR_MENU,
-  MODE_OPTIONS,
   MODE_CREDITS
 };
 uint8_t gameMode;
+
+// the items in the main menu
+enum {
+  MAIN_CAMPAIN = 0,
+  MAIN_EDITOR,
+  MAIN_CREDITS,
+  MAIN_SOUND
+};
 
 // will be indecremted everytime it is shown
 uint8_t infoMsgTimeout = 0;
@@ -110,7 +126,8 @@ enum {
   INFO_ENTRY_BLOCK,
   INFO_JUST_A_HOUSE,
   INFO_SEND_NEXT_WAVE,
-  INFO_TO_LESS_COINS
+  INFO_TO_LESS_COINS,
+  INFO_UNLOCKED_MAP
 };
 uint8_t infoMsgType = 0;
 
@@ -131,6 +148,7 @@ bool mapChanged = true;
 bool isInCampainMode;
 bool isFramesMod2;
 
+// houlds the time when next button can be pressed
 uint32_t nextButtonInput = 0;
 
 // every frame is counted, is used for "every n frames" functions and for fast forward
@@ -140,10 +158,10 @@ uint32_t gameFrames = 0;
 uint16_t currentWaveHp;
 
 // when a map is loaded the difficultiy is stored here and used for enemy hp calculations
-uint8_t currentMapDifficulty;
+uint8_t mapDifficulty;
 
 // while playing in a level the life points where decremented when an enemy reaches your hq
-uint8_t currentLifePoints;
+uint8_t lifePoints;
 
 // counts the waves in a level from 1 to 30 
 uint8_t waveCounter = 0;
@@ -152,16 +170,23 @@ uint8_t waveCounter = 0;
 uint8_t waveType = 0;
 
 // your coins to buy new towers or upgrade existing towers, could overflow!! (uint16_t)
-uint16_t currentCoins = 0;
+uint16_t currentCoins;
 
 // this is for the maps list score
-uint16_t currentScore = 0;
+uint16_t currentScore;
 
 // this holds the lvl of the tower where the cursor is in menu
-uint8_t currentTowerLvl = 0;
+uint8_t currentTowerLvl;
+
+// before entering build or tower menu the index from tM.list is saved here
+uint8_t towerIndex;
+
+// before entering tower menu those are saved
+uint8_t towerLevel;
+uint8_t towerType;
 
 // on wave start ENEMYS_IN_WAVE is loaded to the variable and than decremented
-int8_t enemysOfWave = 0;
+int8_t enemysOfWave;
 
 // every wave needs to be started by the player, see enum
 enum {
@@ -200,15 +225,12 @@ uint8_t indexMapsCampain = 0;
 uint8_t indexMapsEditor = 0;
 uint8_t indexOptions = 0;
 
-// in this var the boost is stored before opening the tower menu
-uint8_t towerBoost = 0;
-
 // is calculated before opening the tower info menu
 uint8_t priceUpdate = 0;
-uint8_t priceSell = 0;
 
-// is also stored to the eeprom
-uint8_t unlockedMaps = 20;
+
+// is loaded from eeprom
+uint8_t unlockedMaps;
 
 enum {
   TOWER_GATLING = 0,
@@ -218,10 +240,11 @@ enum {
   TOWER_FLAME,
   TOWER_LASER,
   TOWER_SHOCK,
-  TOWER_SUPPORT
+  TOWER_SUPPORT,
+  TOWER_PROTOTYPE
 };
 
-enum {
+enum {  
   C_NORMAL = 0,
   C_LIGHT,
   C_WAVE,
@@ -257,7 +280,6 @@ enum {
   SYMBOL_CURSOR2,
   SYMBOL_COIN,
   SYMBOL_HEART,
-  SYMBOL_WAVE,
   SYMBOL_UPGRADE,
   SYMBOL_INFO,
   SYMBOL_SELL,

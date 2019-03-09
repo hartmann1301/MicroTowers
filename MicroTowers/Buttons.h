@@ -137,8 +137,13 @@ void goToMainMenu() {
   // set main game mode
   gameMode = MODE_MAINMENU;
 
+#ifdef DEBUG_FRAMES
+  // to show how many frames are possible
+  isNormalSpeed = false;
+#else
   // fast forward is not needed in main menu
   isNormalSpeed = true;
+#endif
 
   // set wave to finish so the auto sender can start a wave
   sendWaveStatus = WAVE_FINISHED;
@@ -165,20 +170,20 @@ void buttonsMainMenu() {
 
   // TODO: do something on B button
 
-  if (isLongPressed(stateButtonA) && indexMainMenu == 4)
-    resetGame();
+  if (isLongPressed(stateButtonA) && isLongPressed(stateButtonB))
+    resetEEPROM();
 
   // go to next mode
   if (arduboy.justReleased(A_BUTTON)) {
     switch (indexMainMenu) {
-      case 0:
+      case MAIN_CAMPAIN:
         gameMode = MODE_MAPS_CAMPAIN;
 
         // is used to load scores from eeprom
         isInCampainMode = true;
 
         break;
-      case 1:
+      case MAIN_EDITOR:
         gameMode = MODE_MAPS_EDITOR;
 
         // is used to load scores from eeprom
@@ -188,11 +193,19 @@ void buttonsMainMenu() {
         loadMapsFromEEPROM();
 
         break;
-      case 2:
-        gameMode = MODE_OPTIONS;
+      case MAIN_CREDITS:
+        gameMode = MODE_CREDITS;      
+
         break;
-      case 3:
-        gameMode = MODE_CREDITS;
+      case MAIN_SOUND:
+
+        // toggle the sound on and off
+        arduboy.audio.toggle();
+
+        // if sound was toggled on play a sound
+        if (arduboy.audio.enabled())
+          sound.tones(soundFinishedWave);
+        
         break;
     }
   }
@@ -202,7 +215,7 @@ void buttonsMainMenu() {
 
   checkLeftRight(indexMainMenu, MAINMENU_ITEMS);
 
-  //checkUpDown(unlockedMaps, 11);
+  checkUpDown(unlockedMaps, 20);
 
   setCursorTimeout();
 }
@@ -224,7 +237,7 @@ void buttonsMapsCampain() {
   checkUpDown(indexMapsCampain, min(unlockedMaps, MAPS_IN_CAMPAIN));
 
   // get the score of the new map();
-  if (arduboy.justPressed(UP_BUTTON) || arduboy.justPressed(DOWN_BUTTON))
+  if (arduboy.pressed(UP_BUTTON) || arduboy.pressed(DOWN_BUTTON))
     updateCurrentScore();
 
   setCursorTimeout();
@@ -267,47 +280,14 @@ void buttonsMapsEditor() {
   setCursorTimeout();
 }
 
-void checkPrepareTowerMenu() {
+void updateTowerGlobals() {
+
   // get tower where the cursor is
-  uint8_t towerIndex = tM.getTowerAt(xCursor, yCursor);
+  towerIndex = tM.getTowerAt(xCursor, yCursor);
 
-  // there are towers but the cursor is wrong between them
-  if (towerIndex == NO_INDEX) {
-
-    // use blocked area again
-    setInfoMessage(INFO_BLOCKED_AREA);
-
-    return;
-  }
-
-  gameMode = MODE_PLAYING_TOWER;
-
-  uint8_t type = tM.list[towerIndex].getType();
-  uint8_t lvl = tM.list[towerIndex].getLevel();
-
-  // save boost for the menu
-  towerBoost = tM.list[towerIndex].boost;
-
-  //Serial.println("towerBoost: " + String(towerBoost));
-
-  // write update price to global var and check if possible
-  if (lvl < 3) {
-    priceUpdate = getTowerPrice(type, lvl + 1);
-
-  } else {
-    priceUpdate = 0xff;
-  }
-
-  //Serial.println("priceUpdate: " + String(priceUpdate));
-
-  // calculte the costs buying the tower
-  priceSell = 0;
-  for (uint8_t i = 0; i <= lvl; i++) {
-    priceSell += getTowerPrice(type, i);
-  }
-
-  // div by 2 because of selling
-  priceSell /= 2;
+  // with the index current level and typa are also stored global
+  towerType = tM.list[towerIndex].getType();
+  towerLevel = tM.list[towerIndex].getLevel();
 }
 
 void buttonsPlaying() {
@@ -324,8 +304,11 @@ void buttonsPlaying() {
 
     } else if (isCursorAreaType(MAP_FREE)) {
 
-      // add some test tower to the current cursor position
-      tM.add(xCursor, yCursor, 0);
+      // add prototype tower to the current cursor position
+      tM.add(xCursor, yCursor, TOWER_PROTOTYPE);
+
+      // update the global var to use it while buying
+      updateTowerGlobals();
 
       // check if it is allowed to build here
       if (mM.findPath()) {
@@ -334,15 +317,25 @@ void buttonsPlaying() {
       } else {
         // put not allowed to build here message to the info line
         setInfoMessage(INFO_FORBIDDEN_BUILD);
-      }
 
-      // sell this test tower again
-      tM.sell(tM.getTowerAt(xCursor, yCursor));
+        // erase test prototype tower again
+        tM.sell(towerIndex);
+      }
 
       // check if cursor area is a tower
     } else if (isCursorAreaType(MAP_TOWER)) {
 
-      checkPrepareTowerMenu();
+      // update the global var to use it in tower menu
+      updateTowerGlobals();
+
+      //check if there are towers but the cursor is wrong over them
+      if (towerIndex != NO_INDEX) {
+        gameMode = MODE_PLAYING_TOWER;
+
+      } else {
+        // use blocked area again
+        setInfoMessage(INFO_BLOCKED_AREA);
+      }
 
     } else if (isCursorAreaType(MAP_FREE)) {
       setInfoMessage(INFO_JUST_A_HOUSE);
@@ -362,8 +355,12 @@ void buttonsPlayingMenuBuild() {
     tryToBuildTower();
 
   // go back to play mode
-  if (arduboy.justReleased(B_BUTTON))
+  if (arduboy.justReleased(B_BUTTON)) {
     gameMode = MODE_PLAYING;
+
+    // destroy the prototype tower
+    tM.sell(towerIndex);
+  }
 
   if (isLongPressed(stateButtonB))
     gameMode = MODE_MAPS_CAMPAIN;
@@ -468,12 +465,6 @@ void buttonsEditorMenu() {
   checkUpDown(indexBuildMenu, MENU_ITEMS_EDITOR);
 
   setCursorTimeout();
-}
-
-void buttonsOptions() {
-
-  //TODO: add the options
-  //checkUpDown(indexOptions, MENU_ITEMS_OPTIONS);
 }
 
 void checkLongPress(int8_t &pressTime) {
@@ -594,6 +585,8 @@ void checkButtons() {
       buttonsPlayingInfo();
 
     } else if (gameMode == MODE_PLAYING_END) {
+
+      // check for level unlock
       leaveToMainMenu();
     }
 
@@ -619,16 +612,10 @@ void checkButtons() {
       buttonsEditorMenu();
     }
 
-  } else if (gameMode == MODE_OPTIONS || gameMode == MODE_CREDITS) {
+  } else if (gameMode == MODE_CREDITS) {
 
-    // leave on button a and b
+    // leave on button a and b button
     leaveToMainMenu();
-
-    // controll the options list with cursor
-    if (gameMode == MODE_OPTIONS)
-      buttonsOptions();
-
-    // credits has no own buttons function
   }
 }
 

@@ -44,7 +44,7 @@ void drawMapInfos(uint8_t num) {
   if (gameMode == MODE_MAPS_CAMPAIN) {
 
     uint8_t xPos = 8;
-    const uint8_t stars = currentScore / 200;
+    const uint8_t stars = currentScore / POINTS_PRO_STAR;
     
     for (uint8_t i = 0; i < stars; i++) {
 
@@ -242,6 +242,9 @@ void drawPlayingTowerInfo() {
         break;
     }
 
+    // can not be declared in switch
+    uint8_t category;
+
     // write the infos
     mF.setCursor(80, yPos);
     switch (i) {
@@ -266,9 +269,12 @@ void drawPlayingTowerInfo() {
           mF.print(F("-"));
         }
         break;
-      case 4:
+        
+      case 4: 
         // draw an icon for the next wave
-        drawBitmapFast(66, yPos, waveTypes, 6, getTowerCategory(indexBuildMenu), false);
+        category = getTowerCategory(indexBuildMenu);        
+        if (category != 3)
+          drawBitmapFast(66, yPos, waveTypes, 6, category + 1, false);
       
         // print the category of the tower
         switch (getTowerCategory(indexBuildMenu)) {
@@ -367,7 +373,6 @@ void drawPlayingTowerMenu() {
   tM.list[towerIndex].drawRange();
 }
 
-
 void drawPlayingBuildMenu() {
 
   // this will do the shifting and return true if outside display
@@ -424,13 +429,6 @@ void drawEditorMenu() {
     // adds more if current index is active
     setVeritcalOffset(yPos, isActiveIndex);
   }
-}
-
-
-void drawOptionsMenu() {
-
-  mF.setCursor(30, 30);
-  mF.print(F("OPTIONS"));
 }
 
 void drawCredits() {

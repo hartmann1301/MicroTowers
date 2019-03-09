@@ -16,45 +16,49 @@ void tryToBuildTower() {
     return;
   }
 
-
   // buy the tower
   currentCoins -= price;
 
-  // put tower to map
-  tM.add(xCursor, yCursor, indexBuildMenu);
+  // change prototype tower to actual tower
+  tM.list[towerIndex].setType(indexBuildMenu);
+
+  sound.tones(soundSomethingBad);
+
+  // recalculate how much every tower is boosted
+  if (indexBuildMenu == TOWER_SUPPORT)
+    tM.setBoosts();
 
   // if tower was placed return to playing mode
   gameMode = MODE_PLAYING;
 }
 
 void tryToUpgradeTower() {
-  // get the tower where the cursor is
-  uint8_t index = tM.getTowerAt(xCursor, yCursor);
-  uint8_t type = tM.list[index].getType();
 
-  // save this to global to change if text
-  currentTowerLvl = tM.list[index].getLevel();
+  // do nothing, there is a max info printed
+  if (towerLevel == TOWER_LEVEL_MAX)
+    return;
 
-  if (currentTowerLvl == TOWER_LEVEL_MAX) {
+  uint16_t priceUpdate = getPriceUpdate();
+
+  // return because player has to less money, price is already calulated
+  if (currentCoins < priceUpdate) {
 
     // stay in menu but show this message
     setInfoMessage(INFO_TO_LESS_COINS);
 
-    return;    
+    return;
   }
 
-  // return because player has to less money, price is already calulated
-  if (currentCoins < priceUpdate)
-    return;
+  sound.tones(soundSomethingBad);
 
   // buy the upgrade
   currentCoins -= priceUpdate;
 
   // write incremented level back
-  tM.list[index].setLevel(currentTowerLvl + 1);
+  tM.list[towerIndex].setLevel(towerLevel + 1);
 
   // recalculate the boosts
-  if (type == TOWER_SUPPORT)
+  if (towerType == TOWER_SUPPORT)
     tM.setBoosts();
 
   // if update was done return to game
@@ -62,22 +66,23 @@ void tryToUpgradeTower() {
 }
 
 void sellTower() {
-  // get the tower where the cursor is
-  uint8_t index = tM.getTowerAt(xCursor, yCursor);
-
   // give half of the buying und upgrading price back
-  currentCoins += priceSell;
+  currentCoins += getPriceSell();
 
   // delete this tower
-  tM.sell(index);
+  tM.sell(towerIndex);
+
+  sound.tones(soundSomethingGood);
 
   // if tower was placed return to playing mode
   gameMode = MODE_PLAYING;
 }
 
-void resetGame() {
+void resetEEPROM() {
   // lock the maps
   unlockedMaps = 5;
+
+  sound.tones(soundSomethingGood);
 
   // reset list index
   indexMapsCampain = 0;
@@ -96,7 +101,7 @@ void loadMap(uint8_t mapNumber) {
   mapChanged = true;
 
   // set lifepoints
-  currentLifePoints = 100;
+  lifePoints = 100;
 
   // is incremented in info line to start with 1 not 0
   waveCounter = 0;
@@ -114,7 +119,7 @@ void loadMap(uint8_t mapNumber) {
     setInfoMessage(INFO_SEND_NEXT_WAVE);
 
   // every map has a different difficulty needed for hp calulation
-  currentMapDifficulty = getProgMem(mapDifficulties, mapNumber);
+  mapDifficulty = getProgMem(mapDifficulties, mapNumber);
 
   // load map specific coins
   currentCoins = getProgMem(mapStartCoins, mapNumber);
@@ -247,7 +252,7 @@ void mainScheduler() {
       drawPlayingTowerInfo();
 
     } else if (gameMode == MODE_PLAYING_END) {
-      drawGameOverInfo();
+      drawEndGameInfo();
     }
 
   } else if (inEditorMode(gameMode)) {
@@ -259,15 +264,13 @@ void mainScheduler() {
       drawEditorMenu();
     }
 
-  } else if (gameMode == MODE_OPTIONS) {
-    drawOptionsMenu();
-
   } else if (gameMode == MODE_CREDITS) {
     drawCredits();
   }
 
   // must be drawed at least because of the white parts
-  drawCursor();
+  if (gameMode == MODE_PLAYING || gameMode ==  MODE_EDITOR || gameMode ==  MODE_EDITOR_MENU)
+    drawCursor();
 }
 
 
@@ -276,9 +279,6 @@ void updateGame() {
   if (mapChanged) {
     // write new cost list with pathfinding algorithm
     mM.findPath();
-
-    // recalculate how much every tower is boosted
-    tM.setBoosts();
   }
 
   mM.drawMap();

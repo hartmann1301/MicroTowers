@@ -54,6 +54,9 @@ bool drawInfoMessage() {
   } else if (infoMsgType == INFO_TO_LESS_COINS) {
     mF.print(F("NOT ENOUGH COINS"));
 
+  } else if (infoMsgType == INFO_UNLOCKED_MAP) {
+    mF.print(F("UNLOCKED NEW MAP"));
+
   }
 
   return true;
@@ -91,13 +94,10 @@ void drawMainMenuText(int16_t xWrite, uint8_t index) {
       mF.print(F("EDITOR"));
       break;
     case 2:
-      mF.print(F("OPTIONS"));
-      break;
-    case 3:
       mF.print(F("CREDITS"));
       break;
-    case 4:
-      mF.print(F("RESET GAME"));
+    case 3:
+      mF.print(F("SOUND"));
       break;
   }
 }
@@ -115,7 +115,7 @@ void drawMainMenuRank() {
 
   // unlocked maps is also the rank
   uint8_t yPos = 42;
-  for (uint8_t i = 0; i < unlockedMaps / 2 - 3; i++) {
+  for (uint8_t i = 0; i < (unlockedMaps - 5) / 2; i++) {
 
     // draw a rank symbol
     drawBitmapFast(xPos, yPos, rankSymbols, xWidth, i / 3, false, WHITE);
@@ -172,6 +172,18 @@ void drawMainMenu() {
     // try to draw all of the menu items if they are on the screen or not
     drawMainMenuText(i * 64 + 32 - indexMainMenuDelayed * 4,  i);
   }
+
+  if (indexMainMenu == MAIN_SOUND) {
+
+    // print the status of the sound to the bottom line
+    setInfoTextCursor(95);
+    if (arduboy.audio.enabled()) {
+      mF.print(F("ON"));
+
+    } else {
+      mF.print(F("OFF"));
+    }
+  }
 }
 
 void drawInfosEditor() {
@@ -214,13 +226,13 @@ void drawInfosEditor() {
   }
 }
 
-void drawInfosOptionsCredits() {
+void drawInfosCredits() {
 
   setInfoTextCursor(1);
-  mF.print(F("PRESS B TO EXIT"));
+  mF.print(F("PRESS TO EXIT"));
 }
 
-void drawCoins(uint8_t xPos, uint8_t coins) {
+void drawCoins(uint8_t xPos, uint16_t coins) {
 
   // draw coin icon
   drawBitmapFast(xPos, yIcon, symbolSet, ICON_WIDTH, SYMBOL_COIN, false);
@@ -237,7 +249,7 @@ void drawInfosPlaying() {
 
   // draw current life
   setInfoTextCursor(50);
-  mF.print(currentLifePoints);
+  mF.print(lifePoints);
 
   // draw wave icon
   setInfoTextCursor(82);
@@ -319,17 +331,27 @@ void drawInfosPlayingInfo() {
   // draw socket depending on level
   drawTowerSocket(xTower, yTower, indexMapsEditor);
 
+  // could also be a global, but why not
+  static uint8_t towerRotation;
+
   // should rotate slowly
-  uint32_t rotation = (gameFrames / 8) % 16;
+  if ((gameFrames % 16 == 0) && !isFastSpeedFrame)
+    towerRotation++;
+
+  // keep rotation from 0-15
+  towerRotation %= 16;
 
   // draw tower
-  drawTowerWeapon(xTower, yTower, indexBuildMenu, rotation, indexMapsEditor);
+  drawTowerWeapon(xTower, yTower, indexBuildMenu, towerRotation, indexMapsEditor);
 }
 
 
 void drawInfosPlayingMenu() {
 
-  setInfoTextCursor(32);
+  // this sets the cursor for tower name or tower option
+  setInfoTextCursor(31);
+
+  const uint8_t xPosCoins = 85;
 
   if (gameMode == MODE_PLAYING_BUILD) {
 
@@ -337,36 +359,40 @@ void drawInfosPlayingMenu() {
     drawCurrentTowerName();
 
     // draw price of the tower
-    drawCoins(88, getTowerPrice(indexBuildMenu, 0));
+    drawCoins(xPosCoins, getTowerPrice(indexBuildMenu, 0));
 
   } else if (gameMode == MODE_PLAYING_TOWER) {
 
-    uint8_t coins;
+    // fuckin switch lets me not declare it where i need it
+    uint8_t towerBoost;
 
     switch (indexTowerMenu) {
       case TOWER_MENU_UPGRADE:
 
-        if (currentTowerLvl == 3) {
+        if (priceUpdate == NO_PRICE) {
           mF.print(F("MAX LEVEL"));
 
         } else {
           mF.print(F("UPGRADE"));
 
-          // draw price of the upgrade
-          coins = priceUpdate;
+          // draw price for upgrade
+          drawCoins(xPosCoins, getPriceUpdate());
         }
         break;
 
       case TOWER_MENU_INFO:
         mF.print(F("INFOS"));
 
+        // tower index was saved while opening the menu
+        towerBoost = tM.list[towerIndex].boost;
+
         // give infos about boost only if boosted
         if (towerBoost != 0) {
 
           // draw the level 3 support tower icon
-          drawBitmapFast(86, 57, allTowers, ICON_WIDTH, 6 * 16 + 7);
+          drawBitmapFast(82, 57, allTowers, ICON_WIDTH, 6 * 16 + 7);
 
-          setInfoTextCursor(98);
+          setInfoTextCursor(92);
           mF.print(towerBoost);
         }
 
@@ -376,36 +402,28 @@ void drawInfosPlayingMenu() {
       case TOWER_MENU_SELL:
         mF.print(F("SELL"));
 
-        // get reward for selling the tower with upgrades
-        coins = priceSell;
+        // draw reward for selling the tower with upgrades
+        drawCoins(xPosCoins, getPriceSell());
+
         break;
     }
-
-    // TODO: return if tower has max level
-
-    // draw price for upgrade or reward for sell
-    drawCoins(86, coins);
   }
 }
 
 void drawInfosPlayingAll() {
 
-  // the gameover screen will be painted in main scheduler
-  if (gameMode == MODE_PLAYING_END)
-    return;
-
   // info screen need all the space
   if (gameMode != MODE_PLAYING_INFO) {
 
     // draw the coins the play has
-    drawCoins(2, currentCoins);
+    drawCoins(1, currentCoins);
 
-    // show that you in fast mode right now
+    // show that you are in fast mode right now
     if (!isNormalSpeed)
       drawBitmapFast(112, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_FASTMODE, false);
   }
 
-  if (gameMode == MODE_PLAYING) {
+  if (gameMode == MODE_PLAYING || gameMode == MODE_PLAYING_END) {
     drawInfosPlaying();
 
   } else if (gameMode == MODE_PLAYING_BUILD || gameMode == MODE_PLAYING_TOWER) {
@@ -416,14 +434,24 @@ void drawInfosPlayingAll() {
   }
 }
 
-void drawGameOverInfo() {
-  setInfoTextCursor(1);
-  mF.print(F("GAMEOVER"));
+void drawEndGameInfo() {
 
-  setInfoTextCursor(66);
+  // make white space for info block
+  arduboy.fillRect(32, 14, 66, 18, WHITE);
+
+  // show if game was won or not
+  mF.setCursor(34, 16);
+  if (lifePoints > 0) {
+    mF.print(F("WELL DONE"));
+
+  } else {
+    mF.print(F("GAME OVER"));
+  }
+
+  // print current score
+  mF.setCursor(34, 26);
   mF.print(F("SCORE"));
 
-  setInfoTextCursor(108);
   mF.print(currentScore);
 }
 
@@ -443,8 +471,8 @@ void drawInfoLine() {
   } else if (inEditorMode(gameMode)) {
     drawInfosEditor();
 
-  } else if (gameMode == MODE_OPTIONS || gameMode == MODE_CREDITS) {
-    drawInfosOptionsCredits();
+  } else if (gameMode == MODE_CREDITS) {
+    drawInfosCredits();
   }
 }
 
