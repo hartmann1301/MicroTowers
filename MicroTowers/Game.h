@@ -205,7 +205,7 @@ void mainMenuWaveSender() {
   waveCounter %= TYPES_OF_WAVES;
 
   // set wave difficulty range
-  waveCounter += 4;
+  waveCounter += (6 + unlockedMaps / 2);
 
   // start sending a new wave if the last is done
   if (sendWaveStatus == WAVE_FINISHED)
@@ -266,6 +266,9 @@ void mainScheduler() {
 
   } else if (gameMode == MODE_CREDITS) {
     drawCredits();
+    
+  } else if (gameMode == MODE_ENEMIES) {
+    drawEnemiesInfos();
   }
 
   // must be drawed at least because of the white parts

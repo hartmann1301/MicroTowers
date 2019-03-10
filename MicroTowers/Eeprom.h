@@ -9,8 +9,14 @@
 
 void loadEEPROM () {
 
+#ifdef DEBUG_FRAMES
+  // unlock all the maps
+  unlockedMaps = MAPS_IN_CAMPAIN;
+#else 
+
   // load last unlocked maps, but at least a few
   unlockedMaps = max(EDITOR_MAP_SLOTS, EEPROM.read(EEPROM_UNLOCKED_MAPS));
+#endif
 }
 
 void initEEPROM () {
@@ -124,9 +130,11 @@ void clearEepromScores() {
 uint16_t getEepromAddress() {
   // calculate address in eeprom
   if (isInCampainMode) {
+    //Serial.println("address: " + String(EEPROM_MAP_SCORES + indexMapsCampain * 2));
     return EEPROM_MAP_SCORES + indexMapsCampain * 2;
 
   } else {
+    //Serial.println("address: " + String(EEPROM_MAP_SCORES + (indexMapsEditor + MAPS_IN_CAMPAIN) * 2));    
     return EEPROM_MAP_SCORES + (indexMapsEditor + MAPS_IN_CAMPAIN) * 2;
   }
 }

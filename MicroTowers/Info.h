@@ -87,16 +87,19 @@ void drawMainMenuText(int16_t xWrite, uint8_t index) {
   setInfoTextCursor(xWrite);
 
   switch (index) {
-    case 0:
+    case MAIN_CAMPAIN:
       mF.print(F("CAMPAIN"));
       break;
-    case 1:
+    case MAIN_EDITOR:
       mF.print(F("EDITOR"));
       break;
-    case 2:
+    case MAIN_ENEMIES:
+      mF.print(F("ENEMIES"));
+      break;
+    case MAIN_CREDITS:
       mF.print(F("CREDITS"));
       break;
-    case 3:
+    case MAIN_SOUND:
       mF.print(F("SOUND"));
       break;
   }
@@ -132,13 +135,13 @@ void drawMainMenuRank() {
   }
 }
 
-void drawLeftHint(uint8_t xPos) {
-  setInfoTextCursor(xPos);
+void drawLeftHint(int8_t xPos, uint8_t yPos) {
+  mF.setCursor(xPos, yPos);
   mF.print(F("<"));
 }
 
-void drawRightHint(uint8_t xPos) {
-  setInfoTextCursor(xPos);
+void drawRightHint(int8_t xPos, uint8_t yPos) {
+  mF.setCursor(xPos, yPos);
   mF.print(F(">"));
 }
 
@@ -148,9 +151,6 @@ void drawMainMenu() {
   // write the games name to the screen
   mF.setCursor(22, 3);
   mF.print(F("MICRO TOWERS"));
-
-  // rights part that shows the progress
-  drawMainMenuRank();
 
   // create a bigger index value for scrolling
   int16_t indexInPixels = indexMainMenu * 16;
@@ -162,10 +162,10 @@ void drawMainMenu() {
   if (indexMainMenuDelayed == indexInPixels)  {
     // draw hints
     if (indexMainMenu > 0)
-      drawLeftHint(22);
+      drawLeftHint(22, yText);
 
     if (indexMainMenu < MAINMENU_ITEMS - 1)
-      drawRightHint(84);
+      drawRightHint(84, yText);
   }
 
   for (int8_t i = 0; i < MAINMENU_ITEMS; i++) {
@@ -226,10 +226,10 @@ void drawInfosEditor() {
   }
 }
 
-void drawInfosCredits() {
+void drawInfosCreditsEnemies() {
 
   setInfoTextCursor(1);
-  mF.print(F("PRESS TO EXIT"));
+  mF.print(F("A OR B TO EXIT"));
 }
 
 void drawCoins(uint8_t xPos, uint16_t coins) {
@@ -263,7 +263,7 @@ void drawInfosPlaying() {
 
   } else {
     // draw an icon for the next wave
-    drawBitmapFast(82, yText, waveTypes, 6, waveType - ENEMY_IS_FAST, false);
+    drawBitmapFast(82, yText, waveTypes, 7, waveType - ENEMY_IS_FAST, false);
   }
 
   // draw wave counter
@@ -312,7 +312,7 @@ void drawInfosPlayingInfo() {
 
   // draw left hint
   if (indexMapsEditor > 0)
-    drawLeftHint(86);
+    drawLeftHint(86, yText);
 
   // draw tower level index incremented to have levels 1-4
   setInfoTextCursor(94);
@@ -320,7 +320,7 @@ void drawInfosPlayingInfo() {
 
   // draw right hint
   if (indexMapsEditor < 3)
-    drawRightHint(102);
+    drawRightHint(102, yText);
 
   // clear space for tower symbol
   arduboy.fillRect(127 - 13, 63 - 13, 13, 13, WHITE);
@@ -331,15 +331,8 @@ void drawInfosPlayingInfo() {
   // draw socket depending on level
   drawTowerSocket(xTower, yTower, indexMapsEditor);
 
-  // could also be a global, but why not
-  static uint8_t towerRotation;
-
-  // should rotate slowly
-  if ((gameFrames % 16 == 0) && !isFastSpeedFrame)
-    towerRotation++;
-
-  // keep rotation from 0-15
-  towerRotation %= 16;
+  // calculate the walking state
+  uint8_t towerRotation = (millis() / 512) % 16;
 
   // draw tower
   drawTowerWeapon(xTower, yTower, indexBuildMenu, towerRotation, indexMapsEditor);
@@ -369,7 +362,7 @@ void drawInfosPlayingMenu() {
     switch (indexTowerMenu) {
       case TOWER_MENU_UPGRADE:
 
-        if (priceUpdate == NO_PRICE) {
+        if (getPriceUpdate() == NO_PRICE) {
           mF.print(F("MAX LEVEL"));
 
         } else {
@@ -458,6 +451,10 @@ void drawEndGameInfo() {
 
 void drawInfoLine() {
 
+  // rights part that shows the progress
+  if (gameMode == MODE_MAINMENU || gameMode == MODE_CREDITS || gameMode == MODE_ENEMIES)
+    drawMainMenuRank();
+
   // info messages have highest prio
   if (drawInfoMessage())
     return;
@@ -471,8 +468,8 @@ void drawInfoLine() {
   } else if (inEditorMode(gameMode)) {
     drawInfosEditor();
 
-  } else if (gameMode == MODE_CREDITS) {
-    drawInfosCredits();
+  } else if (gameMode == MODE_CREDITS || gameMode == MODE_ENEMIES) {
+    drawInfosCreditsEnemies();
   }
 }
 

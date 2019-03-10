@@ -148,6 +148,9 @@ void goToMainMenu() {
   // set wave to finish so the auto sender can start a wave
   sendWaveStatus = WAVE_FINISHED;
 
+  // shift right menu to the right end, for map border drawing
+  xPosRightMenu = MENU_RIGHT_MAX;
+
   // delete all existing enemys on map
   eM.init();
   aM.init();
@@ -155,15 +158,29 @@ void goToMainMenu() {
   // the loaded map is main menu background and playable map
   loadMap(9);
 
-  // needs to be after loading the map
+  // add all the towers to main menu
+  for (uint8_t t = 0; t < 8; t++) {
+
+    // get tower postions from program memory
+    int8_t xPos = getProgMem(xMainMenuTower, t);
+    int8_t yPos = getProgMem(yMainMenuTower, t);
+
+    // towers get a higher level with more unlocked maps 
+    uint8_t lvl = min(3,((unlockedMaps - EDITOR_MAP_SLOTS) * 2 + t) / 8);  
+    
+    tM.add(xPos, yPos, t, lvl);    
+  }
+
+  /* needs to be after loading the map
   tM.add(9, 5, TOWER_GATLING);
   tM.add(5, 3, TOWER_CANNON);
   tM.add(1, 2, TOWER_FROST);
-  tM.add(7, 4, TOWER_SUPPORT);
-  tM.add(13, 5, TOWER_FLAME);
-  tM.add(2, 4, TOWER_SHOCK);
   tM.add(5, 5, TOWER_RAILGUN);
+  tM.add(13, 5, TOWER_FLAME);  
   tM.add(12, 3, TOWER_LASER);
+  tM.add(2, 4, TOWER_SHOCK);
+  tM.add(7, 4, TOWER_SUPPORT);
+  */
 }
 
 void buttonsMainMenu() {
@@ -193,8 +210,12 @@ void buttonsMainMenu() {
         loadMapsFromEEPROM();
 
         break;
+      case MAIN_ENEMIES:
+        gameMode = MODE_ENEMIES;
+
+        break;
       case MAIN_CREDITS:
-        gameMode = MODE_CREDITS;      
+        gameMode = MODE_CREDITS;
 
         break;
       case MAIN_SOUND:
@@ -205,7 +226,7 @@ void buttonsMainMenu() {
         // if sound was toggled on play a sound
         if (arduboy.audio.enabled())
           sound.tones(soundFinishedWave);
-        
+
         break;
     }
   }
@@ -215,6 +236,7 @@ void buttonsMainMenu() {
 
   checkLeftRight(indexMainMenu, MAINMENU_ITEMS);
 
+  // just for debug
   checkUpDown(unlockedMaps, 20);
 
   setCursorTimeout();
@@ -245,36 +267,36 @@ void buttonsMapsCampain() {
 
 void buttonsMapsEditor() {
 
-  // play
   if (arduboy.justReleased(A_BUTTON)) {
 
     // put the current map from pgm space to mapComposition array
     loadMap(indexMapsEditor);
 
-    // this needs to be done after loading the map!
-    gameMode = MODE_PLAYING;
-  }
+    if (isInEditMode) {
+      // because the editor menu is using the same index but is only 4 long
+      indexBuildMenu = 0;
 
-  // edit
-  if (arduboy.justReleased(RIGHT_BUTTON)) {
+      // should be done after loading the map
+      gameMode = MODE_EDITOR;
 
-    // because the editor menu is using the same index but is only 4 long
-    indexBuildMenu = 0;
+    } else {
 
-    // put the current map from pgm space to mapComposition array
-    loadMap(indexMapsEditor);
-
-    // should be done after loading the map
-    gameMode = MODE_EDITOR;
+      // this needs to be done after loading the map!
+      gameMode = MODE_PLAYING;
+    }
   }
 
   if (isTimeoutActive())
     return;
 
+  // shifts maps up and down
   checkUpDown(indexMapsEditor, EDITOR_MAP_SLOTS);
 
+  // toggles between edit and play mode
+  checkLeftRight(isInEditMode, 2);
+
   // get the score of the new map();
-  if (arduboy.justPressed(UP_BUTTON) || arduboy.justPressed(DOWN_BUTTON))
+  if (arduboy.pressed(UP_BUTTON) || arduboy.pressed(DOWN_BUTTON))
     updateCurrentScore();
 
   setCursorTimeout();
@@ -612,7 +634,7 @@ void checkButtons() {
       buttonsEditorMenu();
     }
 
-  } else if (gameMode == MODE_CREDITS) {
+  } else if (gameMode == MODE_CREDITS || gameMode == MODE_ENEMIES) {
 
     // leave on button a and b button
     leaveToMainMenu();

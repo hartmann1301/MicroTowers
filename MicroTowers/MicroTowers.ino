@@ -105,7 +105,7 @@ void loop() {
 
   checkButtons();
   
-  if (!inMapsListMode(gameMode) && gameMode != MODE_PLAYING_INFO && gameMode != MODE_CREDITS)
+  if (!inMapsListMode(gameMode) && gameMode != MODE_PLAYING_INFO && gameMode != MODE_ENEMIES && gameMode != MODE_CREDITS)
     updateGame();
 
   mainScheduler();
@@ -117,7 +117,8 @@ void loop() {
 
   arduboy.fillRect(1, 1, 20, 6, WHITE);
   mF.setCursor(2, 1);
-  mF.print(getFramesPerSecond());
+//  mF.print(getFramesPerSecond());
+  mF.print(unlockedMaps);  
 #endif
 
   arduboy.display();

@@ -243,7 +243,6 @@ void drawBitmapSlow(int16_t x, int16_t y, const uint8_t *image, uint8_t w, uint8
   drawBitmapSlow(x, y, image, w, h, offset, rotation, BLACK);
 }
 
-
 void drawBitmapFast(int16_t x, int16_t y, const uint8_t *data, uint8_t w, uint8_t offset, bool hFlip, uint8_t color) {
 
   // no need to draw if out of screen
@@ -377,6 +376,29 @@ void drawCursor() {
   statCursor++;
   if (statCursor == 4)
     statCursor = 0;
+}
+
+void drawEnemy(int8_t x, int8_t y, uint8_t race, uint8_t type, uint8_t state, bool isLookingLeft) {
+
+  // default width is 6, can be changed later
+  uint8_t w = 6;
+
+  const uint8_t *img;
+  if (race == ENEMY_RACE_CYBORG) {
+    img = enemyCyborgs;
+
+  } else if (race == ENEMY_RACE_TWOPOD) {
+    img = enemyTwoPods;
+
+  } else {
+    img = enemyMonsters;
+
+    // monsters need a bit more pixels
+    w = 9;
+  }
+
+  // draw the spirte fast
+  drawBitmapFast(x, y, img, w, type * 3 + state, isLookingLeft);
 }
 
 void drawTowerSocket(uint8_t x, uint8_t y, uint8_t lvl) {

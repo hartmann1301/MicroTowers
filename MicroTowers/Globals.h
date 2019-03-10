@@ -53,7 +53,7 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define HALF_RASTER         (RASTER / 2)
 
 #define MAPS_IN_CAMPAIN     20
-#define POINTS_PRO_STAR     200
+#define POINTS_PRO_STAR     250
 
 #define RASTER_OFFSET_X     1
 #define RASTER_OFFSET_Y     0
@@ -61,7 +61,7 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define LONGPRESS_INFO      15
 #define LONGPRESS_TIME      30
 
-#define MAINMENU_ITEMS      4
+#define MAINMENU_ITEMS      5
 #define MAPS_IN_CAMPAIN     20
 #define EDITOR_MAP_SLOTS    5
 
@@ -71,10 +71,13 @@ ArduboyTones sound(arduboy.audio.enabled);
 
 #define TOWER_LEVEL_MAX     3
 
+#define TYPES_OF_ENEMIES    5
 #define ENEMYS_IN_WAVE      5
 #define TYPES_OF_WAVES      6
 #define MAXIMAL_WAVE        30
 
+#define MENU_RIGHT_MAX      132
+#define MENU_RIGHT_MIN      121
 
 // in gameFrames to work also in fast mode
 #define NEXT_ENEMY_TIMEOUT  FRAMES_PRO_SEC
@@ -96,7 +99,7 @@ ArduboyTones sound(arduboy.audio.enabled);
 enum {
   MODE_MAINMENU = 0,
   MODE_MAPS_CAMPAIN,
-  MODE_MAPS_EDITOR,  
+  MODE_MAPS_EDITOR,
   MODE_PLAYING_INFO,
   MODE_PLAYING,
   MODE_PLAYING_BUILD,
@@ -104,6 +107,7 @@ enum {
   MODE_PLAYING_END,
   MODE_EDITOR,
   MODE_EDITOR_MENU,
+  MODE_ENEMIES,
   MODE_CREDITS
 };
 uint8_t gameMode;
@@ -112,6 +116,7 @@ uint8_t gameMode;
 enum {
   MAIN_CAMPAIN = 0,
   MAIN_EDITOR,
+  MAIN_ENEMIES,
   MAIN_CREDITS,
   MAIN_SOUND
 };
@@ -139,13 +144,19 @@ uint8_t mapCosts[NODES];
 
 uint8_t headquarterPosition = 0;
 
-uint8_t xPosRightMenu = 128;
+// the shared x coordinate for all right menus
+uint8_t xPosRightMenu = MENU_RIGHT_MAX;
+
 bool cursorPressed = false;
 
 bool isNormalSpeed = true;
 bool mapChanged = true;
 
 bool isInCampainMode;
+
+// this is uint8_t because of the check button function it is used like a bool 
+uint8_t isInEditMode = 1;
+
 bool isFramesMod2;
 
 // houlds the time when next button can be pressed
@@ -163,7 +174,7 @@ uint8_t mapDifficulty;
 // while playing in a level the life points where decremented when an enemy reaches your hq
 uint8_t lifePoints;
 
-// counts the waves in a level from 1 to 30 
+// counts the waves in a level from 1 to 30
 uint8_t waveCounter = 0;
 
 // holds what kind of enemy wave is currently spawning
@@ -225,10 +236,6 @@ uint8_t indexMapsCampain = 0;
 uint8_t indexMapsEditor = 0;
 uint8_t indexOptions = 0;
 
-// is calculated before opening the tower info menu
-uint8_t priceUpdate = 0;
-
-
 // is loaded from eeprom
 uint8_t unlockedMaps;
 
@@ -244,11 +251,11 @@ enum {
   TOWER_PROTOTYPE
 };
 
-enum {  
+enum {
   C_NORMAL = 0,
   C_LIGHT,
   C_WAVE,
-  C_ELSE 
+  C_ELSE
 };
 
 enum {

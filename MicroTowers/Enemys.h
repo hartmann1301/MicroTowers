@@ -334,31 +334,14 @@ struct enemy {
   }
 
   void draw() {
+    
     bool isLookingLeft = getBit(pathStorage, BIT_LOOKS_LEFT);
 
-    uint8_t st = getState() % 3;
+    // use this function to reuse it for the lexicon
+    drawEnemy(x, y, type, enemysRace, getState() % 3, isLookingLeft);
 
-    // default width is 6, can be changed later
-    uint8_t w = 6;
-
-    const uint8_t *img;
-    if (enemysRace == ENEMY_RACE_CYBORG) {
-      img = enemyCyborgs;
-
-    } else if (enemysRace == ENEMY_RACE_TWOPOD) {
-      img = enemyTwoPods;
-
-    } else {
-      img = enemyMonsters;
-
-      // monsters need a bit more pixels
-      w = 9;
-    }
-
+    // draws a line of 8 pixels over the enemy
     drawHealthBar();
-
-    // draw the spirte fast
-    drawBitmapFast(x, y, img, w, type * 3 + st, isLookingLeft);
   }
 
   bool isInRange(int16_t xTower, int16_t yTower, int16_t range) {

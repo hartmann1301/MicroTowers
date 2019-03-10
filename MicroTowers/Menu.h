@@ -39,16 +39,20 @@ void drawMapBorders() {
   }
 }
 
-void drawMapInfos(uint8_t num) {
 
-  if (gameMode == MODE_MAPS_CAMPAIN) {
+void drawScoreStars() {
 
-    uint8_t xPos = 8;
-    const uint8_t stars = currentScore / POINTS_PRO_STAR;
-    
+  // x position of the first star
+  uint8_t xPos = 8;
+
+  // currentScore was calculated while moving the cursor
+  const uint8_t stars = currentScore / POINTS_PRO_STAR;
+
+
+
+  if (stars != 0) {
+    // draw the stars
     for (uint8_t i = 0; i < stars; i++) {
-
-      //drawBitmapSlow(xPos, 4, scoreStars, 15, 16, 0, 0, 0);
 
       arduboy.drawBitmap(xPos, 4, scoreStars, 15, 16, BLACK);
 
@@ -56,22 +60,47 @@ void drawMapInfos(uint8_t num) {
     }
 
   } else {
-    // write hint to edit the map
-    mF.setCursor(5, 4);
-    mF.print(F("PRESS >"));
-    mF.setCursor(5, 12);
-    mF.print(F("TO EDIT"));
+    // write no stars
+    mF.setCursor(8, 10);
+    mF.print(F("NO STARS"));
+  }
+}
+
+void drawMapInfos(uint8_t num) {
+
+  if (gameMode == MODE_MAPS_CAMPAIN) {
+
+    // in campain list show always the stars
+    drawScoreStars();
+
+  } else if (gameMode == MODE_MAPS_EDITOR) {
+
+    // draw between hints
+    if (isInEditMode) {
+
+      drawLeftHint(10, 10);
+
+      mF.setCursor(20, 10);
+      mF.print(F("EDIT"));
+
+      // draw a nice looking house
+      arduboy.drawBitmap(46, 7, mapHouse1, 11, 11, BLACK);
+
+    } else {
+      drawScoreStars();
+
+      drawRightHint(64, 10);
+    }
   }
 
-
-  mF.setCursor(10, 24);
+  mF.setCursor(12, 24);
   if (gameMode == MODE_MAPS_CAMPAIN) {
     mF.print(F("LEVEL"));
 
   } else {
     mF.print(F("SLOT"));
   }
-  
+
   mF.print(num + 1);
 
   mF.setCursor(5, 38);
@@ -182,7 +211,7 @@ bool shiftMenuOut() {
   // note: this is not possibel to see, because the menu is not drawn anymore
 
   // shift menu outside screen
-  if (xPosRightMenu < 132)
+  if (xPosRightMenu < MENU_RIGHT_MAX)
     xPosRightMenu++;
 }
 
@@ -190,7 +219,7 @@ bool shiftMenuOut() {
 bool shiftMenuIn() {
 
   // shift menu inside screen
-  if (xPosRightMenu > 121)
+  if (xPosRightMenu > MENU_RIGHT_MIN)
     xPosRightMenu--;
 
   // return true to not draw, no need to it will be outside screen
@@ -225,10 +254,10 @@ void drawPlayingTowerInfo() {
         break;
       case 1:
         if (indexBuildMenu == TOWER_SUPPORT) {
-            mF.print(F("BOOST"));
-  
+          mF.print(F("BOOST"));
+
         } else {
-            mF.print(F("DAMAGE"));
+          mF.print(F("DAMAGE"));
         }
         break;
       case 2:
@@ -269,14 +298,14 @@ void drawPlayingTowerInfo() {
           mF.print(F("-"));
         }
         break;
-        
-      case 4: 
+
+      case 4:
         // draw an icon for the next wave
-        category = getTowerCategory(indexBuildMenu);        
+        category = getTowerCategory(indexBuildMenu);
         if (category != 3)
-          drawBitmapFast(66, yPos, waveTypes, 6, category + 1, false);
-      
-        // print the category of the tower
+          drawBitmapFast(80, yPos, waveTypes, 7, category + 1, false);
+
+        /* print the category name of the tower
         switch (getTowerCategory(indexBuildMenu)) {
           case 0:
             mF.print(F("NORMAL"));
@@ -291,7 +320,8 @@ void drawPlayingTowerInfo() {
             mF.print(F("-"));
             break;
         }
-        break;       
+        */
+        break;
     }
     // set y position of the next line
     yPos += 9;
@@ -431,15 +461,59 @@ void drawEditorMenu() {
   }
 }
 
+void drawEnemiesInfos() {
+
+  // calculate the walking state
+  uint8_t state = (millis() / 256) % 3;
+
+  // set start of first line
+  int8_t yPos = 4;
+
+  // iterate vertical trough the types of enemys
+  for (uint8_t t = 0; t < TYPES_OF_ENEMIES; t++) {
+
+    // reset x position of the line
+    int8_t xPos = 6;
+
+    // iterate horizontal trough the races of enemys
+    for (uint8_t r = 0; r < 3; r++) {
+
+      drawEnemy(xPos, yPos, r, t, state, false);
+
+      // move a bit right
+      xPos += 12;
+    }
+
+    // write a short info
+    mF.setCursor(xPos + 5, yPos + 3);
+
+    if (t == ENEMY_IS_DEFAULT)  {
+      mF.print(F("IS DEFAULT"));
+
+    } else if (t == ENEMY_IS_FAST )  {
+      mF.print(F("IS FAST "));
+
+    } else {
+      mF.print(F("RESISTS "));
+
+      drawBitmapFast(100, yPos + 3, waveTypes, 7, t - 1, false);
+    }
+
+    // move to the next line
+    yPos += 10;
+
+  }
+}
+
 void drawCredits() {
 
-  arduboy.drawBitmap(39, 2, controllerDesign, 51, 32, BLACK);
+  arduboy.drawBitmap(37, 2, controllerDesign, 51, 32, BLACK);
 
-  mF.setCursor(20, 36);
+  mF.setCursor(18, 36);
   mF.print(F("PROGRAMMED BY"));
-  
-  mF.setCursor(26, 46);
-  mF.print(F("HARTMANN1301"));  
+
+  mF.setCursor(24, 46);
+  mF.print(F("HARTMANN1301"));
 }
 
 #endif

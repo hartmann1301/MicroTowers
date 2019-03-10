@@ -356,7 +356,7 @@ struct tower {
 };
 
 struct towerManager {
-  static const uint8_t maximum = 24;
+  static const uint8_t maximum = 30;
   tower list[maximum];
 
   void clearTower(uint8_t towerIndex) {
@@ -462,6 +462,10 @@ struct towerManager {
   }
 
   void add(uint8_t xR, uint8_t yR, uint8_t type) {
+    add(xR, yR, type, 0);
+  }
+
+  void add(uint8_t xR, uint8_t yR, uint8_t type, uint8_t lvl) {
 
     bool foundSlot = false;
     for (uint8_t i = 0; i < maximum; i++) {
@@ -482,7 +486,7 @@ struct towerManager {
       // set values
       list[i].index = mapIndex;
       list[i].boost = 0;
-      list[i].setLevel(0);
+      list[i].setLevel(lvl);
       list[i].setState(0);
       list[i].setType(type);
 

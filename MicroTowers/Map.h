@@ -293,8 +293,17 @@ struct mapMangager {
           // clear map at this position
           arduboy.fillRect(xHouse, yHouse, 11, 11, WHITE);
 
-          // draw variously one of two houses depending on index
-          drawBitmapSlow(xHouse, yHouse, mapHouses, 11, 11, index % 2, 0, BLACK);
+          // decide witch house to print depending on index
+          const unsigned char *img;
+          if (index % 2) {
+            img = mapHouse1;
+            
+          } else {
+            img = mapHouse2;    
+          }
+
+          // draw variously one of two houses 
+          arduboy.drawBitmap(xHouse, yHouse, img, 11, 11, BLACK);
         }
       }
     }
@@ -311,8 +320,7 @@ struct mapMangager {
       arduboy.fillRect(xOffset + 2, yOffset + 2, 2 * ROWS - 2, 2 * COLUMNS + 2, BLACK);
 
       // a lock symbol
-      drawBitmapSlow(xOffset + 17, yOffset + 6, mapLocked, 8, 11, 0, 0, WHITE);
-      //arduboy.drawBitmap(xOffset + 17, yOffset + 6, mapLocked, 8, 11, WHITE);
+      arduboy.drawBitmap(xOffset + 17, yOffset + 6, mapLocked, 8, 11, WHITE);
       return;
     }
 
