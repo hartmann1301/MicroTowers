@@ -334,7 +334,7 @@ struct enemy {
   }
 
   void draw() {
-    
+
     bool isLookingLeft = getBit(pathStorage, BIT_LOOKS_LEFT);
 
     // use this function to reuse it for the lexicon
@@ -426,7 +426,7 @@ struct enemyManager {
       sendWaveStatus = WAVE_FINISHED;
 
       // increment the levels waves
-      if (waveCounter < MAXIMAL_WAVE) {
+      if (waveCounter < MAXIMAL_WAVE - 1) {
         waveCounter++;
 
       } else {
@@ -527,7 +527,9 @@ struct enemyManager {
   }
 
   void update() {
-
+#ifdef DEBUG_PERFORMANCE
+    startMeasure("Enemies update() ");
+#endif
     for (uint8_t i = 0; i < maximum; i++) {
 
       // send new waves
@@ -545,6 +547,9 @@ struct enemyManager {
 
       list[i].draw();
     }
+#ifdef DEBUG_PERFORMANCE
+  endMeasure();
+#endif    
   }
 };
 

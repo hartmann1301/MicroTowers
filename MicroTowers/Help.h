@@ -1,6 +1,24 @@
 #ifndef Helper_h
 #define Helper_h
 
+#ifdef DEBUG_PERFORMANCE
+uint32_t measureTimer = 0;
+
+void startMeasure(String name) {
+
+  Serial.print("Start: " + name);
+
+  measureTimer = micros();
+}
+
+void endMeasure() {
+
+  uint32_t diff = micros() - measureTimer;
+
+  Serial.println(String(" took: ") + String(diff));
+}
+#endif
+
 bool getBit(uint8_t data, uint8_t pos) {
   return data & (0b00000001 << pos);
 }
@@ -410,6 +428,13 @@ void drawTowerSocket(uint8_t x, uint8_t y, uint8_t lvl) {
 
 void drawTowerWeapon(uint8_t x, uint8_t y, uint8_t type, uint8_t sektor, uint8_t lvl) {
 
+  // get drawing starts
+  int8_t xPos = x + 2;
+  int8_t yPos = y + 2;
+
+  
+  //uint8_t offset = lvl % 4
+
   if (isRotatingTower(type)) {
 
     // set offset for correct level and fine rotation
@@ -419,23 +444,28 @@ void drawTowerWeapon(uint8_t x, uint8_t y, uint8_t type, uint8_t sektor, uint8_t
     offset += type * 16;
 
     // TODO: try to draw this tower fast
-    //if (sektor < 4)
+    if (sektor >= 8 && sektor < 12) {
 
-    // divide again by 4 because sprite can only rotate every 90 degrees
-    uint8_t rotation = sektor / 4;
+      // can be drawn fast
+      drawBitmapFast(xPos, yPos, allTowers, ICON_WIDTH, offset);
 
-    // rotate 180° because the sprite looks to the left side
-    rotation = (rotation + 2) % 4;
+    } else {
+      // divide again by 4 because sprite can only rotate every 90 degrees
+      uint8_t rotation = sektor / 4;
 
-    //  Serial.println("drawSlow:" + String(type) + " offset " + String(offset) + " rotation " + String(rotation));
-    drawBitmapSlow(x + 2, y + 2, allTowers, 7, 7, offset, rotation);
+      // rotate 180° because the sprite looks to the left side and sektor 2 starts right
+      rotation = (rotation + 2) % 4;
+
+      //  Serial.println("drawSlow:" + String(type) + " offset " + String(offset) + " rotation " + String(rotation));
+      drawBitmapSlow(xPos, yPos, allTowers, 7, 7, offset, rotation);
+    }
 
   } else {
     // offset is a huge value, because the five other towers are on top
     uint8_t offset = lvl % 4 + (type - TOWER_SHOCK) * 4 + 16 * 6;
 
     // can be drawn fast
-    drawBitmapFast(x + 2, y + 2, allTowers, 7, offset);
+    drawBitmapFast(xPos, yPos, allTowers, ICON_WIDTH, offset);
   }
 }
 

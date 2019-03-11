@@ -241,7 +241,33 @@ struct mapMangager {
     return mapCosts[getIndex(xR, yR)];
   }
 
+  bool isHouse(uint8_t xR, uint8_t yR) {
+
+    // no big house checks in the top and left row/column
+    if (xR == 0 || yR == 0)
+      return false;
+
+    // check left node
+    if (getCurrentMapNode(getIndex(xR - 1, yR)) != MAP_ROCK)
+      return false;
+
+    // check top node
+    if (getCurrentMapNode(getIndex(xR, yR - 1)) != MAP_ROCK)
+      return false;
+
+    // check top left node
+    if (getCurrentMapNode(getIndex(xR - 1, yR - 1)) != MAP_ROCK)
+      return false;
+
+    return true;
+  }
+
   void drawMap() {
+
+#ifdef DEBUG_PERFORMANCE
+    startMeasure("drawMap() ");
+#endif
+
     for (uint8_t yR = 0; yR < COLUMNS; yR++) {
       uint8_t yPos = RASTER_OFFSET_Y + yR * RASTER;
 
@@ -254,59 +280,47 @@ struct mapMangager {
         // get on of the four map states
         uint8_t currentMap = getCurrentMapNode(index);
 
-        switch (currentMap) {
+        if (currentMap == MAP_TOWER && index == headquarterPosition) {
+          // headquarter postition was saved while loading the map, tower are draw with manager
+          drawBitmapFast(xPos + 1, yPos - 1, editorSymbole, 5, EDITOR_HQ, false);
 
-          case MAP_FREE:
-            break;
+        } else if (currentMap == MAP_ROCK) {
+          // can be house or rock
+          if (isHouse(xR, yR)) {
+            // get start coordinates
+            int8_t xHouse = xPos - 5;
+            int8_t yHouse = yPos - 5;
 
-          case MAP_TOWER:
-            if (index == headquarterPosition) {
-              drawBitmapFast(xPos + 1, yPos - 1, editorSymbole, 5, EDITOR_HQ, false);
+            // clear map at this position and above
+            arduboy.fillRect(xHouse, yHouse, 11, 11, WHITE);
+
+            // decide witch house to print depending on index
+            const unsigned char *img;
+            if (index % 2) {
+              img = mapHouse1;
+
+            } else {
+              img = mapHouse2;
             }
-            break;
 
-          case MAP_ROCK:
-            drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR) % 4, yR % 2);
-            break;
+            // draw variously one of two houses
+            arduboy.drawBitmap(xHouse, yHouse, img, 11, 11, BLACK);
 
-          case MAP_NOBUILD:
-            drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR + xR % 3) % 6 + 4, yR % 2);
-            break;
-        }
-
-        // no big house checks in the top and left row/column
-        if (xR == 0 || yR == 0)
-          continue;
-
-        // get four map nodes to the top left direction
-        uint8_t mapLeft    = getCurrentMapNode(getIndex(xR - 1, yR));
-        uint8_t mapTop     = getCurrentMapNode(getIndex(xR, yR - 1));
-        uint8_t mapLeftTop = getCurrentMapNode(getIndex(xR - 1, yR - 1));
-
-        // check if they are all rocks
-        if (currentMap == MAP_ROCK && mapLeft == MAP_ROCK && mapTop == MAP_ROCK && mapLeftTop == MAP_ROCK) {
-
-          // get starting coordingates
-          uint8_t xHouse = xPos - 5;
-          uint8_t yHouse = yPos - 5;
-
-          // clear map at this position
-          arduboy.fillRect(xHouse, yHouse, 11, 11, WHITE);
-
-          // decide witch house to print depending on index
-          const unsigned char *img;
-          if (index % 2) {
-            img = mapHouse1;
-            
           } else {
-            img = mapHouse2;    
+            // just a rock
+            drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR) % 4, yR % 2);
           }
 
-          // draw variously one of two houses 
-          arduboy.drawBitmap(xHouse, yHouse, img, 11, 11, BLACK);
+        } else if (currentMap == MAP_NOBUILD) {
+          // one of a few forest things
+          drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR + xR % 3) % 6 + 4, yR % 2);
+
         }
       }
     }
+#ifdef DEBUG_PERFORMANCE
+    endMeasure();
+#endif
   }
 
   void drawMapPreview(uint8_t xOffset, int16_t yOffset, uint8_t mapNumber) {
@@ -380,7 +394,6 @@ struct mapMangager {
   }
 
   bool findPath() {
-
     // reset this bool to find new path only once
     mapChanged = false;
 
@@ -396,7 +409,7 @@ struct mapMangager {
     for (uint8_t i = 0; i < NODES; i++) {
       mapCosts[i] = i;
 
-      // use the first NODES bytes of the display buffer for the closed list     
+      // use the first NODES bytes of the display buffer for the closed list
       arduboy.sBuffer[i] = NOT_CLOSED;
     }
 

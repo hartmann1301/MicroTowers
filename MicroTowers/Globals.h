@@ -10,6 +10,8 @@
 //#define DEBUG_ADD_FUNCTIONS
 #define DEBUG_FRAMES
 
+//#define DEBUG_PERFORMANCE
+
 #ifdef ESP8266
 #define PS2_DAT       D6 // brown/green
 #define PS2_CMD       D0 // orange 

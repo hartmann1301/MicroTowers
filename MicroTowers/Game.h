@@ -266,7 +266,7 @@ void mainScheduler() {
 
   } else if (gameMode == MODE_CREDITS) {
     drawCredits();
-    
+
   } else if (gameMode == MODE_ENEMIES) {
     drawEnemiesInfos();
   }
@@ -276,7 +276,6 @@ void mainScheduler() {
     drawCursor();
 }
 
-
 void updateGame() {
 
   if (mapChanged) {
@@ -285,7 +284,6 @@ void updateGame() {
   }
 
   mM.drawMap();
-
 
   tM.update();
 

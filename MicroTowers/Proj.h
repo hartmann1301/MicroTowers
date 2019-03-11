@@ -199,7 +199,9 @@ struct projectileManager {
   }
 
   void update() {
-
+#ifdef DEBUG_PERFORMANCE
+    startMeasure("Projectiles update() ");
+#endif
     for (uint8_t i = 0; i < maximum; i++) {
 
       // only active items
@@ -213,7 +215,11 @@ struct projectileManager {
 
       list[i].draw();
     }
+#ifdef DEBUG_PERFORMANCE
+  endMeasure();
+#endif      
   }
+
 };
 
 #endif

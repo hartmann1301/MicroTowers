@@ -145,6 +145,9 @@ void goToMainMenu() {
   isNormalSpeed = true;
 #endif
 
+  // store unlocked maps in eeprom
+  updateEEPROMmaps();
+
   // set wave to finish so the auto sender can start a wave
   sendWaveStatus = WAVE_FINISHED;
 
@@ -165,21 +168,21 @@ void goToMainMenu() {
     int8_t xPos = getProgMem(xMainMenuTower, t);
     int8_t yPos = getProgMem(yMainMenuTower, t);
 
-    // towers get a higher level with more unlocked maps 
-    uint8_t lvl = min(3,((unlockedMaps - EDITOR_MAP_SLOTS) * 2 + t) / 8);  
-    
-    tM.add(xPos, yPos, t, lvl);    
+    // towers get a higher level with more unlocked maps
+    uint8_t lvl = min(3, ((unlockedMaps - EDITOR_MAP_SLOTS) * 2 + t) / 8);
+
+    tM.add(xPos, yPos, t, lvl);
   }
 
   /* needs to be after loading the map
-  tM.add(9, 5, TOWER_GATLING);
-  tM.add(5, 3, TOWER_CANNON);
-  tM.add(1, 2, TOWER_FROST);
-  tM.add(5, 5, TOWER_RAILGUN);
-  tM.add(13, 5, TOWER_FLAME);  
-  tM.add(12, 3, TOWER_LASER);
-  tM.add(2, 4, TOWER_SHOCK);
-  tM.add(7, 4, TOWER_SUPPORT);
+    tM.add(9, 5, TOWER_GATLING);
+    tM.add(5, 3, TOWER_CANNON);
+    tM.add(1, 2, TOWER_FROST);
+    tM.add(5, 5, TOWER_RAILGUN);
+    tM.add(13, 5, TOWER_FLAME);
+    tM.add(12, 3, TOWER_LASER);
+    tM.add(2, 4, TOWER_SHOCK);
+    tM.add(7, 4, TOWER_SUPPORT);
   */
 }
 
@@ -549,6 +552,10 @@ void leaveToMainMenu() {
 }
 
 void checkButtons() {
+#ifdef DEBUG_PERFORMANCE
+  startMeasure("checkButtons() ");
+#endif
+
   // this is to know if this is a fastMode frame
   checkNormalTime();
 
@@ -639,6 +646,9 @@ void checkButtons() {
     // leave on button a and b button
     leaveToMainMenu();
   }
+#ifdef DEBUG_PERFORMANCE
+  endMeasure();
+#endif
 }
 
 #endif

@@ -504,7 +504,9 @@ struct towerManager {
   }
 
   void update() {
-
+#ifdef DEBUG_PERFORMANCE
+    startMeasure("Towers update() ");
+#endif
     for (uint8_t i = 0; i < maximum; i++) {
 
       // only active
@@ -515,6 +517,9 @@ struct towerManager {
 
       list[i].draw();
     }
+#ifdef DEBUG_PERFORMANCE
+  endMeasure();
+#endif    
   }
 };
 

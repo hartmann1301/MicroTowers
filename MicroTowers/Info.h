@@ -332,7 +332,7 @@ void drawInfosPlayingInfo() {
   drawTowerSocket(xTower, yTower, indexMapsEditor);
 
   // calculate the walking state
-  uint8_t towerRotation = (millis() / 512) % 16;
+  uint8_t towerRotation = (millis() / 256) % 16;
 
   // draw tower
   drawTowerWeapon(xTower, yTower, indexBuildMenu, towerRotation, indexMapsEditor);

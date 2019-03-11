@@ -84,7 +84,9 @@ struct animationManager {
   }
 
   void update() {
-
+#ifdef DEBUG_PERFORMANCE
+    startMeasure("Animations update() ");
+#endif
     for (uint8_t i = 0; i < maximum; i++) {
 
       // only active items
@@ -95,6 +97,9 @@ struct animationManager {
 
       list[i].update();
     }
+#ifdef DEBUG_PERFORMANCE
+  endMeasure();
+#endif   
   }
 };
 

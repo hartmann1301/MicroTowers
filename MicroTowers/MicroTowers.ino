@@ -21,7 +21,8 @@
 */
 
 #include "Globals.h"
-#include "Sprites.h"
+#include "Mem.h"
+#include "Img.h"
 #include "Help.h"
 
 #include "Font.h"
@@ -117,8 +118,8 @@ void loop() {
 
   arduboy.fillRect(1, 1, 20, 6, WHITE);
   mF.setCursor(2, 1);
-//  mF.print(getFramesPerSecond());
-  mF.print(unlockedMaps);  
+  mF.print(getFramesPerSecond());
+//  mF.print(unlockedMaps);  
 #endif
 
   arduboy.display();
