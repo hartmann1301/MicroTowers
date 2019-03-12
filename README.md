@@ -14,9 +14,9 @@ If you wanna know what is happening on this tiny screen the following pictures m
 
 ![][explainPicture1]         ![][explainPicture2]
 
-[explainPicture1]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture1.png
+[explainPicture1]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture3.png
 
-[explainPicture2]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture2.png
+[explainPicture2]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture4.png
 
 ```diff 
 - 0   this is a tower you already build
