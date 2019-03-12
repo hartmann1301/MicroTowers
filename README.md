@@ -12,7 +12,9 @@ Thanks to this https://felipemanga.github.io/ProjectABE/ great Emulator I could 
 If you wanna know what is happening on this tiny screen the following pictures might help you.
 
 ![][explainPicture1]         ![][explainPicture2]
+
 [explainPicture1]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture1.png
+
 [explainPicture2]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture2.png
 
 ```diff 
