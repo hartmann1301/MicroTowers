@@ -6,6 +6,7 @@ add gifs
 Thanks to this https://felipemanga.github.io/ProjectABE/ great Emulator I could make these gifs.
 
 # The Game
+I
 
 
 # Explaining Pictures
@@ -40,5 +41,6 @@ If you wanna know what is happening on this tiny screen the following pictures m
 + 8   what the upgrade to the next level will cost you
 + 9   fast mode is active, press long A to toggle it
 ```
-
 # Controls
+
+hmm
