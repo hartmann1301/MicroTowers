@@ -10,10 +10,13 @@ Thanks to this https://felipemanga.github.io/ProjectABE/ great Emulator I could 
 
 # Description
 
-<h2>
+```diff 
+- red 
 
-```diff
-- red
+<h2> 
+
+```diff diff text
+- red roter text
 + green
 ! orange
 # gray
