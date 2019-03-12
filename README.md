@@ -10,5 +10,15 @@ Thanks to this https://felipemanga.github.io/ProjectABE/ great Emulator I could 
 
 # Description
 
+<h2>
+
+```diff
+- red
++ green
+! orange
+# gray
+```
+
+</h2>
 
 # Controls
