@@ -12,12 +12,6 @@ I
 # Explaining Pictures
 If you wanna know what is happening on this tiny screen the following pictures might help you.
 
-![][explainPicture1]         ![][explainPicture2]
-
-[explainPicture1]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture1.png
-
-[explainPicture2]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture2.png
-
 ```diff 
 - 0   this is a tower you already build
 - 1   a stone, you can not build there but also enemies can not walk there
@@ -29,7 +23,10 @@ If you wanna know what is happening on this tiny screen the following pictures m
 - 7   lifepoints of your headquarter, if it is zero the match is over
 - 8   Next wave type and number, there will be 30 waves and 6 different types
 - 9   a tree, you can not build there but enemies can walk there
+```
+![][explainPicture1]         ![][explainPicture2]
 
+```diff 
 + 0   an enemy that is trying to walk to your hq
 + 1   a support tower to boost those two towers next to it
 + 2   tower menu SELL, press A to sell a tower and get some money back
@@ -41,6 +38,9 @@ If you wanna know what is happening on this tiny screen the following pictures m
 + 8   what the upgrade to the next level will cost you
 + 9   fast mode is active, press long A to toggle it
 ```
-# Controls
+[explainPicture1]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture1.png
+[explainPicture2]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture2.png
 
-hmm
+# Controls
+This is a picture that should explain the main controls of the game.
+
