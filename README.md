@@ -32,7 +32,7 @@ Those are some towers facing different directions.
 
 ![][allRotatingTowers]    
 
-[allRotatingTowers]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainControls.png
+[allRotatingTowers]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/allRotatingTowers.pn 
 
 
 # Controls
@@ -40,7 +40,7 @@ This picture should explain how to navigate and play in the game.
 
 ![][explainControls]    
 
-[explainControls]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/allRotatingTowers.png 
+[explainControls]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainControls.pn
 
 Editor Pro Tip: if you long press A in the DELETE mode the whole map will be cleared
 
