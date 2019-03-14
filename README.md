@@ -1,39 +1,9 @@
 # Micro Towers
-This is a Tower Defense game I programmed for Arduboy
+This is a Tower Defense game I programmed for Arduboy.
 
 add gifs
 
 Thanks to this https://felipemanga.github.io/ProjectABE/ great Emulator I could make these gifs.
-
-# The Game
-
-
-# Maps
-In the maps list you can choose a map you wanna play. You start with 5 free maps but can unlock 15 more for a total of 20 maps. A new map will be unlocked if the last one has at least one star. 
-
-This is how your score will be calculated:              max:   999
-  for every wave you beet 20 Points               30 * 20   =  600 
-  for every life you get 3 Points                 100 * 3   =  300
-  for every 10 coins you get 1 Point              999 / 10  =   99
-
-For every 250 Points you get a star.
-  example: 22 waves * 30 + 0 life * 3 + 80 coins / 10 = 668 Points   => 2 Stars!
-
-# Editor
-Yes, there is a map editor where you can create new maps. To store those self created maps on the EEPROM there a 5 slots. In the slot list you can choose with left/right if you wanna play or edit the map. Creating a map is like building towers but instead of towers you can build map tiles.
-
-# Enemies 
-The five types of enemies will attack your headquarter in groups of five. They can come in 6 different combinations, it is eigther one of the five types or all of them in a mix.
-
-# Towers
-There are eight different types of towers, for more information go to the ingame tower lexicon. You access it after building a tower, selecting it and press on menu item INFOS.
-
-Those are some towers facing different directions.
-
-![][allRotatingTowers]    
-
-[allRotatingTowers]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/allRotatingTowers.png
-
 
 # Controls
 This picture should explain how to navigate and play in the game.
@@ -75,6 +45,36 @@ If you wanna know what is happening on this tiny screen the following pictures m
 ```
 [explainPicture1]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture1.png
 [explainPicture2]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture2.png
+
+# Maps
+In the maps list you can choose a map you wanna play. You start with 5 free maps but can unlock 15 more for a total of 20 maps. A new map will be unlocked if the last one has at least one star. 
+
+This is how your score will be calculated:              max:   999
+
+  for every wave you beet 20 Points               30 * 20   =  600 
+  
+  for every life you get 3 Points                 100 * 3   =  300
+  
+  for every 10 coins you get 1 Point              999 / 10  =   99
+
+For every 250 Points you get a star.
+
+  example: 22 waves * 30 + 0 life * 3 + 80 coins / 10 = 668 Points   => 2 Stars!
+
+# Editor
+Yes, there is a map editor where you can create new maps. To store those self created maps on the EEPROM there a 5 slots. In the slot list you can choose with left/right if you wanna play or edit the map. Creating a map is like building towers but instead of towers you can build map tiles.
+
+# Enemies 
+The five types of enemies will attack your headquarter in groups of five. They can come in 6 different combinations, it is eigther one of the five types or all of them in a mix.
+
+# Towers
+There are eight different types of towers, for more information go to the ingame tower lexicon. You access it after building a tower, selecting it and press on menu item INFOS.
+
+Those are the rotating towers facing different directions without their sockets.
+
+![][allRotatingTowers]    
+
+[allRotatingTowers]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/allRotatingTowers.png
 
 
 
