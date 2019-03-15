@@ -6,13 +6,16 @@
 #include <Arduboy2.h>
 #include <ArduboyTones.h>
 
-#define USE_SERIAL
-//#define DEBUG_ADD_FUNCTIONS
-#define DEBUG_FRAMES
-
-//#define DEBUG_PERFORMANCE
-
 #ifdef ESP8266
+
+#define USE_SERIAL
+
+//#define DEBUG_FRAMES
+//#define DEBUG_ADD_FUNCTIONS
+//#define DEBUG_PERFORMANCE
+//#define DEBUG_CAMPAIN_STARS
+#define DEBUG_FAKE_SCORES
+
 #define PS2_DAT       D6 // brown/green
 #define PS2_CMD       D0 // orange 
 #define PS2_SEL       D5 // yellow
@@ -33,8 +36,8 @@ uint8_t secondsCurrent = 255;
 Arduboy2Base arduboy;
 ArduboyTones sound(arduboy.audio.enabled);
 
-#define FRAMES_PRO_SEC     30
-#define MS_PRO_FRAME      (1000 / FRAMES_PRO_SEC)
+#define FRAMES_PRO_SEC      30
+#define MS_PRO_FRAME        (1000 / FRAMES_PRO_SEC)
 
 #define COLUMNS             9
 #define ROWS                20
@@ -49,10 +52,16 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define NO_INDEX            255
 #define BUFFER_MAX          (WIDTH*HEIGHT/8)
 
-#define BOOST_PRO_LVL       20
-
 #define RASTER              6
 #define HALF_RASTER         (RASTER / 2)
+#define SEKTORS             16
+
+// is used for calculation the reward for killing enemies
+#define HP_FOR_A_COIN       500
+#define HP_INCREASE_FAKTOR  68
+
+// set how the boost tower boost every other tower around it
+#define BOOST_PRO_LVL       15
 
 #define MAPS_IN_CAMPAIN     20
 #define POINTS_PRO_STAR     250
@@ -134,7 +143,6 @@ enum {
   INFO_JUST_A_HOUSE,
   INFO_SEND_NEXT_WAVE,
   INFO_TO_LESS_COINS,
-  INFO_UNLOCKED_MAP
 };
 uint8_t infoMsgType = 0;
 
@@ -153,7 +161,7 @@ bool cursorPressed = false;
 
 bool isNormalSpeed = true;
 bool mapChanged = true;
-
+bool controlRailgunTower = false;
 bool isInCampainMode;
 
 // this is uint8_t because of the check button function it is used like a bool 
@@ -217,6 +225,9 @@ enum {
 };
 uint8_t enemysRace = ENEMY_RACE_CYBORG;
 
+// the more stars the more unlocked maps you get
+uint8_t campainStars = 0;
+
 // while a wave is active this variable stores the gameFrames until next enemy is stored
 uint32_t nextEnemyFrame = 0;
 
@@ -237,9 +248,6 @@ uint8_t indexTowerMenu = 0;
 uint8_t indexMapsCampain = 0;
 uint8_t indexMapsEditor = 0;
 uint8_t indexOptions = 0;
-
-// is loaded from eeprom
-uint8_t unlockedMaps;
 
 enum {
   TOWER_GATLING = 0,

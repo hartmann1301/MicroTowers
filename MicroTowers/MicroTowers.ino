@@ -13,6 +13,9 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
+  thanks to the following page for the awesome fast getDegrees code I am using in Help.h
+    https://www.romanblack.com/integer_degree.htm
+
   This is MicroTowers, a game created for Arduboy.
 
   For lots of information and how to play see:
@@ -24,6 +27,7 @@
 #include "Mem.h"
 #include "Img.h"
 #include "Help.h"
+#include "Draw.h"
 
 #include "Font.h"
 myFont mF;
@@ -38,7 +42,6 @@ projectileManager pM;
 mapMangager mM;
 
 #include "Eeprom.h"
-
 
 #include "Enemys.h"
 enemyManager eM;
@@ -79,9 +82,6 @@ void setup() {
   // check if game was played before
   initEEPROM();
 
-  // get data from eeprom
-  loadEEPROM();
-
   goToMainMenu();
 
   // some start tone
@@ -94,7 +94,7 @@ void loop() {
   if (!(arduboy.nextFrame()) && isNormalSpeed)
     return;
 
-#ifdef DEBUG_FRAMES
+#ifdef DEBUG_MICROS
   uint32_t start = micros();
 #endif
 
@@ -112,14 +112,14 @@ void loop() {
   mainScheduler();
 
 #ifdef DEBUG_FRAMES
-  // pirnt time for a frame to screen
-  //mF.setCursor(80, 58);
-  //mF.print(String(micros() - start));
-
   arduboy.fillRect(1, 1, 20, 6, WHITE);
   mF.setCursor(2, 1);
   mF.print(getFramesPerSecond());
-//  mF.print(unlockedMaps);  
+#endif
+
+#ifdef DEBUG_MICROS
+  uint32_t diff = micros() - start;
+  Serial.println("took:" + String(diff));
 #endif
 
   arduboy.display();

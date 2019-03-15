@@ -6,33 +6,7 @@
 #define BIT_ENEMY_ACTIVE  6
 #define BIT_LOOKS_LEFT    7
 
-// prototype will be declared in info.h
 void setInfoMessage(uint8_t infoType);
-
-void checkForMapUnlocks() {
-
-  // only in campain mode maps can be unlocked
-  if (!isInCampainMode)
-    return;
-
-  // no star no unlock
-  if (currentScore < POINTS_PRO_STAR)
-    return;
-
-  // all maps are already unlocked
-  if (unlockedMaps == MAPS_IN_CAMPAIN)
-    return;
-
-  // played not the last unlocked map
-  if (indexMapsCampain == unlockedMaps - 1)
-    return;
-
-  // set a popup message
-  setInfoMessage(INFO_UNLOCKED_MAP);
-
-  // congrats, a new map
-  unlockedMaps++;
-}
 
 void endGame() {
 
@@ -41,9 +15,6 @@ void endGame() {
 
   // write score to eeprom
   updateEepromScore();
-
-  // unlocks levels if everything fits
-  checkForMapUnlocks();
 
   // this is the gameover mode
   gameMode = MODE_PLAYING_END;
@@ -223,33 +194,76 @@ struct enemy {
     if (dmgType == TOWER_FROST) {
       uint8_t currentFrozen = getFrozen();
 
-      if (currentFrozen < 13)
-        setFrozen(currentFrozen + 3);
+      if (currentFrozen < 14)
+        setFrozen(currentFrozen + 2);
     }
 
     if (dmg == 0)
       return false;
 
-#ifdef DEGUG_DMG_ENEMYS
-    Serial.print("Enemy type:");
-    Serial.print(type, DEC);
-    Serial.print(" dmg type:");
-    Serial.print(dmgType, DEC);
-    Serial.print(" got DMG:");
-    Serial.print(dmg, DEC);
-#endif
-
-#ifdef DEGUG_DMG_ENEMYS
-    Serial.print(" health is: ");
-    Serial.print(health, DEC);
-#endif
-
     // get resistance category
     uint8_t category = getTowerCategory(dmgType);
 
 #ifdef DEGUG_DMG_ENEMYS
-    Serial.print(" category is: ");
-    Serial.print(category, DEC);
+
+    if (type == ENEMY_IS_DEFAULT) {
+      Serial.print("Default");
+
+    } else if (type == ENEMY_IS_FAST) {
+      Serial.print("Fast");
+
+    } else if (type == ENEMY_RESITS_NORMAL) {
+      Serial.print("Res. Normal");
+
+    } else if (type == ENEMY_RESITS_LIGHT) {
+      Serial.print("Res. Light");
+
+    } else if (type == ENEMY_RESITS_WAVES) {
+      Serial.print("Res. Waves");
+    }
+
+    Serial.print(" Enemy got hit by ");
+
+
+    if (dmgType == TOWER_GATLING) {
+      Serial.print("Gatling");
+
+    } else if (dmgType == TOWER_CANNON) {
+      Serial.print("Cannon");
+
+    } else if (dmgType == TOWER_FROST) {
+      Serial.print("Frost");
+
+    } else if (dmgType == TOWER_RAILGUN) {
+      Serial.print("Railgun");
+
+    } else if (dmgType == TOWER_FLAME) {
+      Serial.print("Flame");
+
+    } else if (dmgType == TOWER_LASER) {
+      Serial.print("Laser");
+
+    } else if (dmgType == TOWER_SHOCK) {
+      Serial.print("Shock");
+    }
+
+    Serial.print(" Tower (");
+
+    if (category == C_NORMAL) {
+      Serial.print("Normal");
+
+    } else if (category == C_LIGHT) {
+      Serial.print("Light");
+
+    } else if (category == C_WAVE) {
+      Serial.print("Wave");
+
+    } else if (category == C_ELSE) {
+      Serial.print("-");
+    }
+
+    Serial.print(") dmg ");
+    Serial.print(dmg, DEC);
 #endif
 
     if (type == ENEMY_RESITS_NORMAL && category == C_NORMAL)
@@ -270,8 +284,11 @@ struct enemy {
       aM.add(x, y);
 
 #ifdef DEGUG_DMG_ENEMYS
-    Serial.print(" resisted: ");
+    Serial.print(" -> ");
     Serial.print(dmg, DEC);
+
+    Serial.print(" health: ");
+    Serial.print(health, DEC);
 #endif
 
     // do the animation
@@ -279,7 +296,7 @@ struct enemy {
       health -= dmg;
 
 #ifdef DEGUG_DMG_ENEMYS
-      Serial.print(" health is now: ");
+      Serial.print(" -> ");
       Serial.println(health, DEC);
 #endif
 
@@ -301,12 +318,16 @@ struct enemy {
   }
 
   void giveCoins() {
+    //Serial.print("reward: " + String(currentCoins));
+
     // give player some coins
     currentCoins += getEnemyReward(waveCounter);
 
     // there is only space for 3 letters
     if (currentCoins > 999)
       currentCoins = 999;
+
+    //Serial.println(" -> " + String(currentCoins));
   }
 
   void die() {
@@ -410,7 +431,7 @@ struct enemyManager {
 
       // fast enemys are a bit weaker
       if (waveType == ENEMY_IS_FAST)
-        currentWaveHp -= (currentWaveHp / 5);
+        currentWaveHp -= (currentWaveHp / 4);
 
       // to skip this in the next call
       sendWaveStatus = WAVE_ACTIVE;
@@ -425,17 +446,17 @@ struct enemyManager {
       // to be able to start next wave
       sendWaveStatus = WAVE_FINISHED;
 
-      // increment the levels waves
-      if (waveCounter < MAXIMAL_WAVE - 1) {
-        waveCounter++;
+      // first increment the waves level
+      waveCounter++;
 
-      } else {
-        // to end the game
+      // check is the end of the game is reached
+      if (waveCounter == MAXIMAL_WAVE)
         endGame();
-      }
 
       //  holds what kinds of enemys will be sent, see ENEMYS enum
       waveType = waveCounter % TYPES_OF_WAVES;
+
+      //Serial.println(String("waveType is now: ") + String(waveType));
 
       // if playing show message that next wave can be triggered
       if (inPlayingMode(gameMode))
@@ -452,7 +473,7 @@ struct enemyManager {
           enemysRace = 0;
         }
 
-        //Serial.println("change Race " + String(waveType) + " to " + String(enemysRace));
+        //Serial.println("change Race to: " + String(enemysRace));
       }
     }
 
@@ -513,7 +534,7 @@ struct enemyManager {
       list[i].type = type;
       list[i].frozenState = 0;
 
-      // Serial.println("add enemy: " + String(i) + " of type: " + String(type) + " health:" + String(currentWaveHp));
+      //Serial.println("add enemy: " + String(i) + " of type: " + String(type) + " health:" + String(currentWaveHp));
 
       // get healt depending on global match progress variables
       list[i].health = currentWaveHp;
@@ -548,8 +569,8 @@ struct enemyManager {
       list[i].draw();
     }
 #ifdef DEBUG_PERFORMANCE
-  endMeasure();
-#endif    
+    endMeasure();
+#endif
   }
 };
 

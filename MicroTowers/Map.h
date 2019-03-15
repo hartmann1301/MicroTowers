@@ -328,18 +328,20 @@ struct mapMangager {
     // draw frame around minimap
     arduboy.drawRect(xOffset, yOffset, 2 * ROWS + 2, 2 * COLUMNS + 2, BLACK);
 
+    // open the frame on the left side only on the map in the middle
+    if ((isInCampainMode && mapNumber == indexMapsCampain) || mapNumber == indexMapsEditor)
+      arduboy.drawLine(xOffset, yOffset + 9, xOffset, yOffset + 11, WHITE);
+
     // check is this map is still locked
-    if (mapNumber >= unlockedMaps) {
+    if (mapNumber >= getUnlockedMaps()) {
+      
       // black background
-      arduboy.fillRect(xOffset + 2, yOffset + 2, 2 * ROWS - 2, 2 * COLUMNS + 2, BLACK);
+      arduboy.fillRect(xOffset + 2, yOffset + 2, 2 * ROWS - 2, 2 * COLUMNS - 2, BLACK);
 
       // a lock symbol
-      arduboy.drawBitmap(xOffset + 17, yOffset + 6, mapLocked, 8, 11, WHITE);
+      arduboy.drawBitmap(xOffset + 17, yOffset + 5, mapLocked, 8, 11, WHITE);
       return;
     }
-
-    // open the frame on the left side
-    arduboy.drawLine(xOffset, yOffset + 9, xOffset, yOffset + 11, WHITE);
 
     for (uint8_t yR = 0; yR < COLUMNS; yR++) {
       int16_t yPos = 1 + yOffset + yR * 2;

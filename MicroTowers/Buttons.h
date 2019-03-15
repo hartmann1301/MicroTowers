@@ -56,33 +56,6 @@ void editorSetNode() {
   mM.setNode(xCursor, yCursor, indexBuildMenu);
 }
 
-bool isPressed(bool pressed) {
-
-  // set global only if the button is pressed
-  if (pressed)
-    cursorPressed = pressed;
-
-  // return bool for specific button functions
-  return pressed;
-}
-
-bool isTimeoutActive() {
-  // set default value for global cursorPressed bool
-  cursorPressed = false;
-
-  if (millis() < nextButtonInput) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-void setCursorTimeout() {
-  if (cursorPressed) {
-    nextButtonInput = millis() + 150;
-  }
-}
-
 void checkUpDown(uint8_t &value, const uint8_t vMax) {
 
   if (isPressed(arduboy.pressed(UP_BUTTON)) && value > 0)
@@ -145,8 +118,8 @@ void goToMainMenu() {
   isNormalSpeed = true;
 #endif
 
-  // store unlocked maps in eeprom
-  updateEEPROMmaps();
+  // will be activated with up/down
+  controlRailgunTower = false;
 
   // set wave to finish so the auto sender can start a wave
   sendWaveStatus = WAVE_FINISHED;
@@ -169,7 +142,7 @@ void goToMainMenu() {
     int8_t yPos = getProgMem(yMainMenuTower, t);
 
     // towers get a higher level with more unlocked maps
-    uint8_t lvl = min(3, ((unlockedMaps - EDITOR_MAP_SLOTS) * 2 + t) / 8);
+    uint8_t lvl = min(3, ((getUnlockedMaps() - EDITOR_MAP_SLOTS) * 2 + t) / 8);
 
     tM.add(xPos, yPos, t, lvl);
   }
@@ -201,6 +174,9 @@ void buttonsMainMenu() {
 
         // is used to load scores from eeprom
         isInCampainMode = true;
+
+        // calculate all the stars the player has
+        campainStars = getStarsFromEEPROM();
 
         break;
       case MAIN_EDITOR:
@@ -239,8 +215,12 @@ void buttonsMainMenu() {
 
   checkLeftRight(indexMainMenu, MAINMENU_ITEMS);
 
-  // just for debug
-  checkUpDown(unlockedMaps, 20);
+  // auto mode of the railgun is now off
+  if ((arduboy.pressed(UP_BUTTON) || arduboy.pressed(DOWN_BUTTON)) && !controlRailgunTower) {
+    Serial.println("start railgun control");
+
+    controlRailgunTower = true;
+  }
 
   setCursorTimeout();
 }
@@ -248,7 +228,7 @@ void buttonsMainMenu() {
 void buttonsMapsCampain() {
 
   // go to next mode
-  if (arduboy.justReleased(A_BUTTON)) {
+  if (arduboy.justReleased(A_BUTTON) && getUnlockedMaps() != indexMapsCampain) {
 
     gameMode = MODE_PLAYING;
 
@@ -259,7 +239,13 @@ void buttonsMapsCampain() {
   if (isTimeoutActive())
     return;
 
-  checkUpDown(indexMapsCampain, min(unlockedMaps, MAPS_IN_CAMPAIN));
+  // plus one to see the unlocked map with stars info
+  checkUpDown(indexMapsCampain, min(getUnlockedMaps() + 1, MAPS_IN_CAMPAIN));
+
+#ifdef DEBUG_CAMPAIN_STARS
+  // to see how the maps will unlock
+  checkLeftRight(campainStars, MAPS_IN_CAMPAIN * 3 + 1);
+#endif 
 
   // get the score of the new map();
   if (arduboy.pressed(UP_BUTTON) || arduboy.pressed(DOWN_BUTTON))
@@ -353,6 +339,9 @@ void buttonsPlaying() {
       // update the global var to use it in tower menu
       updateTowerGlobals();
 
+      // set cursor, to be sure it is not on sell
+      indexTowerMenu = TOWER_MENU_UPGRADE;
+
       //check if there are towers but the cursor is wrong over them
       if (towerIndex != NO_INDEX) {
         gameMode = MODE_PLAYING_TOWER;
@@ -362,12 +351,12 @@ void buttonsPlaying() {
         setInfoMessage(INFO_BLOCKED_AREA);
       }
 
-    } else if (isCursorAreaType(MAP_FREE)) {
+    } else if (isCursorAreaType(MAP_ROCK)) {
       setInfoMessage(INFO_JUST_A_HOUSE);
 
-    } else {
+    } else  {
       // put something is in cursor area message
-      setInfoMessage(INFO_BLOCKED_AREA);
+      setInfoMessage(INFO_BLOCKED_AREA);  
     }
   }
 

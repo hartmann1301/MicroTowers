@@ -4,11 +4,12 @@
 const uint16_t soundFinishedWave [] PROGMEM = {550, 100, 700, 100, 950, 100, 850, 100, TONES_END};
 const uint16_t soundSomethingGood [] PROGMEM = {1100, 50, 400, 50, 150, 50, TONES_END};
 const uint16_t soundSomethingBad [] PROGMEM = {250, 50, 350, 50, 450, 100, 500, 50, TONES_END};
+const uint16_t soundShoot [] PROGMEM = {150, 50, TONES_END};
 
 /*
   const uint16_t soundStdWeapon [] PROGMEM = {100, 50, 75, 50, 50, 50, TONES_END};
   const uint16_t soundLaserWeapon [] PROGMEM = {300, 50, 350, 50, 400, 50, TONES_END};
-  const uint16_t soundMGWeapon [] PROGMEM = {150, 50, TONES_END};
+
   const uint16_t soundFlameWeapon [] PROGMEM = {40, 50, 60, 50, 60, 50, 50, 50, TONES_END};
 */
 
@@ -19,36 +20,37 @@ const uint8_t eepromKey[] PROGMEM  = {"arduTD"};
 // GATLING, CANNON, FROST, RAILGUN, FLAME, LASER, SHOCK, SUPPORT
 
 const uint8_t towerDamages [] PROGMEM = {
-  100, 60,  10, 250,  30,  50,  20,  BOOST_PRO_LVL
-};
+    95,       60,     10,    150,    30,    50,    20,  BOOST_PRO_LVL
+};        
 
 const uint8_t towerCategories [] PROGMEM = {
   C_NORMAL, C_NORMAL,  C_ELSE, C_LIGHT,  C_WAVE,  C_LIGHT,  C_WAVE,  C_ELSE
 };
 
 const uint8_t towerBasicPrices [] PROGMEM = {
-  10,   12,   18,   22,   30,   32,   40,   22
+  10,  12,   18,   22,   30,   38,   40,   22
 };
 
 const uint8_t towerExtraPrices [] PROGMEM = {
-  4,    8,   12,    6,   15,    8,   20,    4
+  12,  16,    8,   12,   30,    4,   40,    8
 };
 
 // in frames but will be times 2 because is checked only every second frame
 const uint8_t towerReloadTimes [] PROGMEM = {
-  5,   11,   7,    9,   50,   50,    0,    0
+  6,   11,   8,    12,   50,   50,    0,    0
 };
 
 // in pixels but will always be multiplyed by 2 and an offset added
 const uint8_t towerBasicRanges [] PROGMEM = {
-  4,    6,    3,    3,    4,   10,    1,    4
+  4,    5,    3,    3,    2,    4,    1,    4
 };
 
 // these values will be added with every extra level
 const uint8_t towerExtraRanges [] PROGMEM = {
-  2,    3,    1,    4,    2,    3,    1,    0
+  2,    3,    2,    4,    2,    4,    1,    0
 };
 
+// those values are the projetile starts points from tower center
 const int8_t sektorStartX [] PROGMEM = {
   3,  3,  2,  1,  0,  -1,  -2,  -3,  -3,  -3,  -2,  -1,  0,  1,  2,  3
 };
@@ -66,15 +68,14 @@ const int8_t yPostionsNear [] PROGMEM = {
   -2, -2, -2, -1, -1,  0,  0,  1,  1,  2,  2,  2
 };
 
-// difficulty can be from 10 to 20, where 10 is normal and 20 is double hp
-// 0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18, 19
-
+// difficulty is percent if hp a wave has, going over 200% could case uint16_t overflows!
+// 1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20
 const uint8_t mapDifficulties [] PROGMEM = {
-  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10
+   80,  90, 100, 110, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
 };
 
 const uint8_t mapStartCoins [] PROGMEM = {
-  40,  25,  30,  30,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20
+   50,  60,  50,  50,  90,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80
 };
 
 // in pixels but will always be multiplyed by 2 and an offset added
@@ -84,8 +85,7 @@ const uint8_t xMainMenuTower [] PROGMEM = {
 
 // these values will be added with every extra level
 const uint8_t yMainMenuTower [] PROGMEM = {
-  5,    3,    2,    5,    5,    3,    4,    4
+  5,    5,    2,    3,    5,    3,    4,    4
 };
-
 
 #endif

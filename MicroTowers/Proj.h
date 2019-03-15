@@ -26,7 +26,7 @@ struct projectile {
   }
 
   uint8_t getLevel() {
-    getLow2Bits(typeActiveLevel);
+    return getLow2Bits(typeActiveLevel);
   }
 
   void setLevel(uint8_t value) {
@@ -128,7 +128,7 @@ struct projectile {
 };
 
 struct projectileManager {
-  static const uint8_t maximum = 50;
+  static const uint8_t maximum = 60;
   projectile list[maximum];
 
   void clearProjectile(uint8_t index) {
@@ -149,7 +149,7 @@ struct projectileManager {
     }
   }
 
-  void add(uint8_t x, uint8_t y, uint8_t type, uint8_t lvl, int8_t state, int8_t boost) {
+  void add(uint8_t x, uint8_t y, uint8_t type, uint8_t lvl, int8_t state, uint8_t boost) {
 
     bool foundSlot = false;
     for (uint8_t i = 0; i < maximum; i++) {

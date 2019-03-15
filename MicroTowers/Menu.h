@@ -48,21 +48,12 @@ void drawScoreStars() {
   // currentScore was calculated while moving the cursor
   const uint8_t stars = currentScore / POINTS_PRO_STAR;
 
+  // draw the stars
+  for (uint8_t i = 0; i < stars; i++) {
 
+    arduboy.drawBitmap(xPos, 3, scoreStars, 15, 16, BLACK);
 
-  if (stars != 0) {
-    // draw the stars
-    for (uint8_t i = 0; i < stars; i++) {
-
-      arduboy.drawBitmap(xPos, 4, scoreStars, 15, 16, BLACK);
-
-      xPos += 20;
-    }
-
-  } else {
-    // write no stars
-    mF.setCursor(8, 10);
-    mF.print(F("NO STARS"));
+    xPos += 20;
   }
 }
 
@@ -84,7 +75,7 @@ void drawMapInfos(uint8_t num) {
       mF.print(F("EDIT"));
 
       // draw a nice looking house
-      arduboy.drawBitmap(46, 7, mapHouse1, 11, 11, BLACK);
+      arduboy.drawBitmap(50, 7, mapHouse1, 11, 11, BLACK);
 
     } else {
       drawScoreStars();
@@ -93,7 +84,7 @@ void drawMapInfos(uint8_t num) {
     }
   }
 
-  mF.setCursor(12, 24);
+  mF.setCursor(10, 22);
   if (gameMode == MODE_MAPS_CAMPAIN) {
     mF.print(F("LEVEL"));
 
@@ -103,11 +94,32 @@ void drawMapInfos(uint8_t num) {
 
   mF.print(num + 1);
 
-  mF.setCursor(5, 38);
-  mF.print(F("HIGHSCORE"));
+  mF.setCursor(5, 34);
+  if (num == getUnlockedMaps()) {
 
-  mF.setCursor(24, 52);
-  mF.print(currentScore);
+    mF.print(F("MAP NEEDS"));
+
+    // write how many stars are needed for this map
+    mF.setCursor(10, 44);
+    mF.print((num - 4) * 2);   
+    mF.print(F(" STARS"));
+    
+  } else {
+
+    mF.print(F("HIGHSCORE"));
+
+    mF.setCursor(24, 44);
+    mF.print(currentScore);
+  }
+
+  // draw the stars only in the campain mode
+  if (gameMode != MODE_MAPS_CAMPAIN)
+    return;
+
+  // draw the global stars
+  drawBitmapFast(5, 55, rankSymbols, 5, 1, false, BLACK);
+  mF.setCursor(12, 57);
+  mF.print(campainStars);
 }
 
 void drawCenterMapHighlighter() {
@@ -306,7 +318,7 @@ void drawPlayingTowerInfo() {
           drawBitmapFast(80, yPos, waveTypes, 7, category + 1, false);
 
         /* print the category name of the tower
-        switch (getTowerCategory(indexBuildMenu)) {
+          switch (getTowerCategory(indexBuildMenu)) {
           case 0:
             mF.print(F("NORMAL"));
             break;
@@ -319,7 +331,7 @@ void drawPlayingTowerInfo() {
           case 3:
             mF.print(F("-"));
             break;
-        }
+          }
         */
         break;
     }
@@ -478,7 +490,7 @@ void drawEnemiesInfos() {
     // iterate horizontal trough the races of enemys
     for (uint8_t r = 0; r < 3; r++) {
 
-      drawEnemy(xPos, yPos, r, t, state, false);
+      drawEnemy(xPos, yPos, t, r, state, false);
 
       // move a bit right
       xPos += 12;

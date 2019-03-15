@@ -94,10 +94,15 @@ struct myFont {
     uint8_t stellen;
     if (v < 10) {
       stellen = 1;
+      
     } else if (v < 100) {
       stellen = 2;
-    } else {
+      
+    } else if (v < 1000) {
       stellen = 3;
+      
+    } else {
+      stellen = 4;    
     }
 
     uint16_t dividor = 1;
@@ -107,7 +112,7 @@ struct myFont {
 
     for (uint8_t i = 0; i < stellen; i++) {
 
-      uint8_t currentValue = v / dividor;
+      uint16_t currentValue = v / dividor;
 
       char currentNumber = currentValue % 10 + '0';
 

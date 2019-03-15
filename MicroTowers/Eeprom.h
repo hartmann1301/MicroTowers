@@ -2,27 +2,32 @@
 #define EEPROMUTILS_H
 
 #define EEPROM_EDITOR_SLOTS     EEPROM_STORAGE_SPACE_START
-#define EEPROM_UNLOCKED_MAPS    (EEPROM_EDITOR_SLOTS + NODES_COMPRESSED * EDITOR_MAP_SLOTS)
-#define EEPROM_MAP_SCORES       (EEPROM_UNLOCKED_MAPS + 1)
-#define EEPROM_GAME_KEY         (EEPROM_MAP_SCORES + (MAPS_IN_CAMPAIN + EDITOR_MAP_SLOTS)*2)
+#define EEPROM_MAP_SCORES       (EEPROM_EDITOR_SLOTS + NODES_COMPRESSED * EDITOR_MAP_SLOTS)
+#define EEPROM_GAME_KEY         (EEPROM_MAP_SCORES + (MAPS_IN_CAMPAIN + EDITOR_MAP_SLOTS) * 2)
 #define EEPROM_NEEDED_BYTES     (EEPROM_GAME_KEY + EEPROM_KEY_LEN)
 
-void loadEEPROM () {
+uint16_t get2BytesData(uint16_t address) {
 
-#ifdef DEBUG_FRAMES
-  // unlock all the maps
-  unlockedMaps = MAPS_IN_CAMPAIN;
-#else
+  // it is important to cast to 16 bit variable before shifting!
+  uint16_t twoBytes = (uint16_t(EEPROM.read(address)) << 8) + EEPROM.read(address + 1);
 
-  // load last unlocked maps, but at least a few
-  unlockedMaps = max(EDITOR_MAP_SLOTS, EEPROM.read(EEPROM_UNLOCKED_MAPS));
-#endif
+  //Serial.println("get2BytesData: " + String(twoBytes));
+  return twoBytes;
 }
 
-void updateEEPROMmaps() {
+void set2BytesData(uint16_t address, uint16_t data) {
+  // write high byte
+  EEPROM.update(address, data >> 8);
 
-  // update the unlocked maps in the eeprom
-  EEPROM.update(EEPROM_UNLOCKED_MAPS, unlockedMaps);
+  // write low byte
+  EEPROM.update(address + 1, data & 0xff);
+
+  //Serial.println("write at: " + String(address) + " high byte :" + String(data >> 8));
+  //Serial.println("write at: " + String(address + 1) + " low byte :" + String(data & 0xff));
+
+#ifdef ESP8266
+  EEPROM.commit();
+#endif
 }
 
 void initEEPROM () {
@@ -38,8 +43,15 @@ void initEEPROM () {
       keyInEEPROM = false;
   }
 
+#ifdef DEBUG_FAKE_SCORES
+    // write some random scores to the eeprom slots
+    for (uint8_t i = 0; i < MAPS_IN_CAMPAIN * 2; i++) {
+      set2BytesData(EEPROM_MAP_SCORES + i * 2, 100 + rand() % 899);
+    }
+#endif
+
   // return because key was found in eeprom
-  if (keyInEEPROM)
+  if (keyInEEPROM) 
     return;
 
   // clear all
@@ -98,29 +110,22 @@ void saveMapToEEPROM(uint8_t mapNumber) {
 #endif
 }
 
-uint16_t get2BytesData(uint16_t address) {
+uint8_t getStarsFromEEPROM() {
 
-  // it is important to cast to 16 bit variable before shifting!
-  uint16_t twoBytes = (uint16_t(EEPROM.read(address)) << 8) + EEPROM.read(address + 1);
+  // reset the global campain stars
+  campainStars = 0;
 
-  //Serial.println("get2BytesData: " + String(twoBytes));
-  return twoBytes;
+  for (uint8_t i = 0; i < MAPS_IN_CAMPAIN; i++) {
+
+    // get score of map i
+    uint16_t score = get2BytesData(EEPROM_MAP_SCORES + i * 2);
+
+    // add the stars to global
+    campainStars += score / POINTS_PRO_STAR;
+  }
 }
 
-void set2BytesData(uint16_t address, uint16_t data) {
-  // write high byte
-  EEPROM.update(address, data >> 8);
 
-  // write low byte
-  EEPROM.update(address + 1, data & 0xff);
-
-  //Serial.println("write at: " + String(address) + " high byte :" + String(data >> 8));
-  //Serial.println("write at: " + String(address + 1) + " low byte :" + String(data & 0xff));
-
-#ifdef ESP8266
-  EEPROM.commit();
-#endif
-}
 
 void clearEepromScores() {
 

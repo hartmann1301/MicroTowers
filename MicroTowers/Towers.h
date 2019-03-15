@@ -190,10 +190,57 @@ struct tower {
     }
   }
 
+  void controlRailgun() {
+
+    // get current sektor
+    uint8_t sektor = getSektor();
+
+    // fire if B was pressed
+    if (arduboy.justPressed(B_BUTTON)) {
+
+      int8_t xStart = getCenterX() + getDirectionX(sektor);
+      int8_t yStart = getCenterY() + getDirectionY(sektor);
+
+      // if the player shoots there is a sound
+      sound.tones(soundShoot);
+
+      // add really high boosted railgun projectile
+      pM.add(xStart, yStart, TOWER_RAILGUN, getLevel(), sektor, 250);
+    }
+
+    if (isTimeoutActive())
+      return;
+
+    // move clockwise
+    if (isPressed(arduboy.pressed(DOWN_BUTTON)))
+      sektor++;
+
+    // move counter clockwise
+    if (isPressed(arduboy.pressed(UP_BUTTON)))
+      sektor--;
+
+    // keep sektor between 0-15
+    sektor = (sektor + SEKTORS) % SEKTORS;
+
+    // write modified sektor back
+    setSektor(sektor);
+
+    setCursorTimeout();
+  }
+
   void update() {
 
     // get the type of this tower
     uint8_t type = getType();
+
+    // control the railgun
+    if (type == TOWER_RAILGUN && gameMode == MODE_MAINMENU && controlRailgunTower == true) {
+
+      // check if the railgun rotates or shoots by the player
+      controlRailgun();
+
+      return;
+    }
 
     // support tower is only doing something when map changed
     if (type == TOWER_SUPPORT)
@@ -328,6 +375,9 @@ struct tower {
       setState(reloadTime);
     }
 
+    if (gameMode != MODE_MAINMENU)
+      sound.tones(soundShoot);
+
     // shoot the bullet
     pM.add(xStart, yStart, type, lvl, projState, boost);
   }
@@ -342,7 +392,6 @@ struct tower {
     // draw socket depending on level
     drawTowerSocket(x, y, lvl);
 
-    //
     if (type == TOWER_PROTOTYPE) {
 
       // draw range depending on selected tower
@@ -350,13 +399,13 @@ struct tower {
 
     } else {
       // draw weapon
-      drawTowerWeapon(x, y, getType(), getSektor(), lvl);
+      drawTowerWeapon(x, y, type, getSektor(), lvl);
     }
   }
 };
 
 struct towerManager {
-  static const uint8_t maximum = 30;
+  static const uint8_t maximum = 40;
   tower list[maximum];
 
   void clearTower(uint8_t towerIndex) {
@@ -478,10 +527,11 @@ struct towerManager {
 
       uint8_t mapIndex = getIndex(xR, yR);
 
-      //Serial.println("add Tower:" + String(i) + " at mapIndex:" + String(mapIndex));
+      // set the 4 map notes to tower, this is only for the main menu
+      if (type != TOWER_PROTOTYPE)
+        mM.set2x2Nodes(xR, yR, MAP_TOWER);
 
-      // set the 4 map notes to tower
-      mM.set2x2Nodes(xR, yR, MAP_TOWER);
+      //Serial.println("add Tower:" + String(i) + " at mapIndex:" + String(mapIndex));
 
       // set values
       list[i].index = mapIndex;
@@ -518,8 +568,8 @@ struct towerManager {
       list[i].draw();
     }
 #ifdef DEBUG_PERFORMANCE
-  endMeasure();
-#endif    
+    endMeasure();
+#endif
   }
 };
 

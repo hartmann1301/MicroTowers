@@ -12,11 +12,11 @@ void setInfoTextCursor(int8_t xPos) {
 void setInfoMessage(uint8_t infoType) {
 
   // set default screen time in frames
-  infoMsgTimeout = 40;
+  infoMsgTimeout = 50;
 
   // show messages longer when fast mode is active
   if (!isNormalSpeed)
-    infoMsgTimeout *= 2;
+    infoMsgTimeout *= 3;
 
   // set message type
   infoMsgType = infoType;
@@ -53,9 +53,6 @@ bool drawInfoMessage() {
 
   } else if (infoMsgType == INFO_TO_LESS_COINS) {
     mF.print(F("NOT ENOUGH COINS"));
-
-  } else if (infoMsgType == INFO_UNLOCKED_MAP) {
-    mF.print(F("UNLOCKED NEW MAP"));
 
   }
 
@@ -118,7 +115,7 @@ void drawMainMenuRank() {
 
   // unlocked maps is also the rank
   uint8_t yPos = 42;
-  for (uint8_t i = 0; i < (unlockedMaps - 5) / 2; i++) {
+  for (uint8_t i = 0; i < (getUnlockedMaps() - 5) / 2; i++) {
 
     // draw a rank symbol
     drawBitmapFast(xPos, yPos, rankSymbols, xWidth, i / 3, false, WHITE);

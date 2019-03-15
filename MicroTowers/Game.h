@@ -22,6 +22,9 @@ void tryToBuildTower() {
   // change prototype tower to actual tower
   tM.list[towerIndex].setType(indexBuildMenu);
 
+  // set the 4 map notes to tower
+  mM.set2x2Nodes(xCursor, yCursor, MAP_TOWER);
+
   sound.tones(soundSomethingBad);
 
   // recalculate how much every tower is boosted
@@ -79,8 +82,6 @@ void sellTower() {
 }
 
 void resetEEPROM() {
-  // lock the maps
-  unlockedMaps = 5;
 
   sound.tones(soundSomethingGood);
 
@@ -168,7 +169,7 @@ void checkHits() {
     uint8_t projectileLvl = pM.list[projIndex].getLevel();
     uint8_t projectileBoost = pM.list[projIndex].boost;
 
-    uint8_t projectileDmg = getTowerDamage(projectileType, projectileLvl, projectileBoost);
+    uint16_t projectileDmg = getTowerDamage(projectileType, projectileLvl, projectileBoost);
 
     //Serial.println("got damage:" + String(projectileDmg) + " type:" + String(projectileType) + " lvl:" + String(projectileLvl));
 
@@ -205,7 +206,7 @@ void mainMenuWaveSender() {
   waveCounter %= TYPES_OF_WAVES;
 
   // set wave difficulty range
-  waveCounter += (6 + unlockedMaps / 2);
+  waveCounter += (6 + getUnlockedMaps() / 3);
 
   // start sending a new wave if the last is done
   if (sendWaveStatus == WAVE_FINISHED)
