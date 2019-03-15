@@ -1,9 +1,12 @@
 # Micro Towers
 This is a Tower Defense game I programmed for Arduboy.
 
-add gifs
+![][gifCampain]  ![][gifEditor] 
 
-Thanks to this https://felipemanga.github.io/ProjectABE/ great Emulator I could make these gifs.
+Thanks to this https://felipemanga.github.io/ProjectABE/ great Emulator I could make those gifs.
+
+[gifCampain]: https://github.com/hartmann1301/MicroTowers/blob/master/gifCampain.gif
+[gifEditor]: https://github.com/hartmann1301/MicroTowers/blob/master/gifEditor.gif
 
 # Controls
 This picture should explain how to navigate and play in the game.
@@ -13,6 +16,8 @@ This picture should explain how to navigate and play in the game.
 [explainControls]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainControls.png
 
 Editor Pro Tip: if you long press A in the DELETE mode the whole map will be cleared
+
+maybe there are also some hidden functions 
 
 # Explaining Pictures
 If you wanna know what is happening on this tiny screen the following pictures might help you.
@@ -47,7 +52,7 @@ If you wanna know what is happening on this tiny screen the following pictures m
 [explainPicture2]: https://github.com/hartmann1301/MicroTowers/blob/master/Extras/explainPicture2.png
 
 # Maps
-In the maps list you can choose a map you wanna play. You start with 5 free maps but can unlock 15 more for a total of 20 maps. A new map will be unlocked if the last one has at least one star. 
+In the maps list you can choose a map you wanna play. You start with 5 free maps but can unlock 15 more for a total of 20 maps.
 
 This is how your score will be calculated:              max:   999
 
