@@ -79,6 +79,7 @@ Icon arrow right | Fast enemies, but a bit weaker than others | -
 Icon bullet | those enemies will resist NORMAL damage | MINIGUN and CANNON towers
 Icon laser beam | those enemies will resist LIGHT damage | RAILGUN and LASER towers
 Icon two waves | those enemies will resist WAVE damage | FLAME and SHOCK towers
+The letter M | Mixed enemies, all of the five above | -
 
 # Towers
 There are eight different types of towers, for more information go to the ingame tower lexicon. You access it after building a tower, selecting it and press on menu item INFOS.
