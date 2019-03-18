@@ -73,6 +73,7 @@ Yes, there is a map editor where you can create new maps. To store those self cr
 The five types of enemies will attack your headquarter in groups of five. They can come in 6 different combinations, it is eigther one of the five types or all of them in a mix. The icon or letter in front of the wavecounter tells you the group type:
 
 Type |  Info | only 50% Damage
+--- | --- | --- 
 The letter D | Default enemies, every towers does the full damage | -
 Icon arrow right | Fast enemies, but a bit weaker than others | -
 Icon bullet | those enemies will resist NORMAL damage | MINIGUN and CANNON towers
