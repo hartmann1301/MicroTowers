@@ -167,15 +167,14 @@ void drawCursor() {
       s = (s + 2) % 4;
     }
 
-    uint8_t offset = s % 2;
     uint8_t rotation = s < 2;
 
     if (gameMode <= MODE_PLAYING_TOWER) {
       // draw 2x2 nodes cursor
-      drawBitmapSlow(xPos + 1, yPos + 1, cursorFrame, 11, 11, offset, rotation, i);
+      drawBitmapSlow(xPos + 1, yPos + 1, cursorFrame, 11, 11, isFramesMod2, rotation, i);
     } else {
       // draw 1 node cursor
-      drawBitmapSlow(xPos, yPos, symbolSet, ICON_WIDTH, ICON_HEIGHT, offset, rotation, i);
+      drawBitmapSlow(xPos, yPos, symbolSet, ICON_WIDTH, ICON_HEIGHT, isFramesMod2, rotation, i);
     }
   }
 

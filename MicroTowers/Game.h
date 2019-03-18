@@ -28,8 +28,7 @@ void tryToBuildTower() {
   sound.tones(soundSomethingBad);
 
   // recalculate how much every tower is boosted
-  if (indexBuildMenu == TOWER_SUPPORT)
-    tM.setBoosts();
+  tM.setBoosts();
 
   // if tower was placed return to playing mode
   gameMode = MODE_PLAYING;
@@ -70,7 +69,7 @@ void tryToUpgradeTower() {
 
 void sellTower() {
   // give half of the buying und upgrading price back
-  currentCoins += getPriceSell();
+  addCoins(getPriceSell());
 
   // delete this tower
   tM.sell(towerIndex);
@@ -122,8 +121,14 @@ void loadMap(uint8_t mapNumber) {
   // every map has a different difficulty needed for hp calulation
   mapDifficulty = getProgMem(mapDifficulties, mapNumber);
 
-  // load map specific coins
-  currentCoins = getProgMem(mapStartCoins, mapNumber);
+  if (gameMode == MODE_MAPS_CAMPAIN) {
+    // load map specific coins
+    currentCoins = getProgMem(mapStartCoins, mapNumber);
+    
+  } else {
+    // all editor maps always start with the same coins
+    currentCoins = 100;
+  }
 
   // reset all towers and enemys and stuff to make screen clear
   tM.init();

@@ -145,9 +145,18 @@ void drawRightHint(int8_t xPos, uint8_t yPos) {
 void drawMainMenu() {
   static int16_t indexMainMenuDelayed = 0;
 
+#ifdef IS_DEBUG_VERSION
+  // write the games name to the screen
+  mF.setCursor(22, 3);
+  mF.print(F("FRAMES DEBUG"));
+
+# else 
   // write the games name to the screen
   mF.setCursor(22, 3);
   mF.print(F("MICRO TOWERS"));
+#endif
+
+
 
   // create a bigger index value for scrolling
   int16_t indexInPixels = indexMainMenu * 16;

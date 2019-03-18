@@ -1,8 +1,6 @@
 #ifndef Enemys_h
 #define Enemys_h
 
-//#define DEGUG_DMG_ENEMYS
-
 #define BIT_ENEMY_ACTIVE  6
 #define BIT_LOOKS_LEFT    7
 
@@ -194,8 +192,8 @@ struct enemy {
     if (dmgType == TOWER_FROST) {
       uint8_t currentFrozen = getFrozen();
 
-      if (currentFrozen < 14)
-        setFrozen(currentFrozen + 2);
+      if (currentFrozen < FOUR_BITS_MAX - FREEZE_FRAMES)
+        setFrozen(currentFrozen + FREEZE_FRAMES);
     }
 
     if (dmg == 0)
@@ -304,7 +302,7 @@ struct enemy {
 
     } else {
       // add some coins to the player
-      giveCoins();
+      addCoins(getEnemyReward(waveCounter));
 
       //Serial.println("Enemy Died");
       die();
@@ -315,19 +313,6 @@ struct enemy {
 
       return true;
     }
-  }
-
-  void giveCoins() {
-    //Serial.print("reward: " + String(currentCoins));
-
-    // give player some coins
-    currentCoins += getEnemyReward(waveCounter);
-
-    // there is only space for 3 letters
-    if (currentCoins > 999)
-      currentCoins = 999;
-
-    //Serial.println(" -> " + String(currentCoins));
   }
 
   void die() {

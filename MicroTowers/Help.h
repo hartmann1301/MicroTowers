@@ -59,6 +59,15 @@ uint8_t getProgMem(const uint8_t *pointer, uint8_t offset) {
   return pgm_read_byte(pointer + offset);
 }
 
+void addCoins(uint16_t coins) {
+
+  currentCoins += coins;
+
+  // there is only space for 3 letters
+  if (currentCoins > 999)
+    currentCoins = 999;
+}
+
 uint8_t getTowerRange(uint8_t type, uint8_t lvl) {
 
   // start with the minimal range of every tower
@@ -223,10 +232,10 @@ uint16_t getEnemyHp(uint8_t wave, uint8_t mapDifficulty) {
 void calculateScore() {
   //Serial.println("lifePoints: " + String(lifePoints) + " waveCounter: " + String(waveCounter) + " currentCoins: " + String(currentCoins));
 
-  // max score would be: 
-  // 30 waves * 20 =  600 
+  // max score would be:
+  // 30 waves * 20 =  600
   // 100 life * 3 =   300
-  // 999 coins / 10 =  99 
+  // 999 coins / 10 =  99
   // is               999
 
   // write to global variable

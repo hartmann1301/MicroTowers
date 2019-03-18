@@ -83,9 +83,6 @@ void setup() {
   initEEPROM();
 
   goToMainMenu();
-
-  // some start tone
-  sound.tone(200, 200, 300, 200);
 }
 
 void loop() {

@@ -6,15 +6,27 @@
 #include <Arduboy2.h>
 #include <ArduboyTones.h>
 
+#define IS_DEBUG_VERSION
+
+#ifdef IS_DEBUG_VERSION
+// show debug informations
+#define DEBUG_FRAMES
+#define DEBUG_FAKE_SCORES
+
+#else
+// this is in the actual game
+#define USE_TOWER_LEXICON
+#endif
+
+
 #ifdef ESP8266
 
 #define USE_SERIAL
 
-//#define DEBUG_FRAMES
 //#define DEBUG_ADD_FUNCTIONS
 //#define DEBUG_PERFORMANCE
 //#define DEBUG_CAMPAIN_STARS
-#define DEBUG_FAKE_SCORES
+//#define DEGUG_DMG_ENEMYS
 
 #define PS2_DAT       D6 // brown/green
 #define PS2_CMD       D0 // orange 
@@ -57,11 +69,12 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define SEKTORS             16
 
 // is used for calculation the reward for killing enemies
-#define HP_FOR_A_COIN       500
-#define HP_INCREASE_FAKTOR  68
+#define HP_FOR_A_COIN       400
+#define HP_INCREASE_FAKTOR  65
 
 // set how the boost tower boost every other tower around it
 #define BOOST_PRO_LVL       15
+#define FREEZE_FRAMES       3
 
 #define MAPS_IN_CAMPAIN     20
 #define POINTS_PRO_STAR     250
@@ -99,6 +112,12 @@ ArduboyTones sound(arduboy.audio.enabled);
 // min and max value of a int8_t
 #define INT8_MIN            -128
 #define INT8_MAX            127
+
+#define FOUR_BITS_MAX       16
+
+#define MAX_TOWERS          40
+#define MAX_PROJECTILES     60
+#define MAX_ANIMATIONS      40
 
 // rotations for the draw bitmap slow function
 #define NOROT 0
@@ -164,7 +183,7 @@ bool mapChanged = true;
 bool controlRailgunTower = false;
 bool isInCampainMode;
 
-// this is uint8_t because of the check button function it is used like a bool 
+// this is uint8_t because of the check button function it is used like a bool
 uint8_t isInEditMode = 1;
 
 bool isFramesMod2;

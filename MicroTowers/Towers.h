@@ -202,7 +202,7 @@ struct tower {
       int8_t yStart = getCenterY() + getDirectionY(sektor);
 
       // if the player shoots there is a sound
-      sound.tones(soundShoot);
+      sound.tones(soundWeaponLight);
 
       // add really high boosted railgun projectile
       pM.add(xStart, yStart, TOWER_RAILGUN, getLevel(), sektor, 250);
@@ -320,8 +320,14 @@ struct tower {
       // do laser dmg
       eM.list[target].damage(getTowerDamage(TOWER_LASER, lvl, boost), TOWER_LASER);
 
-      if (isFramesMod2)
+      if (isFramesMod2) {
+
+        if (gameMode != MODE_MAINMENU)
+          sound.tones(soundWeaponLight);
+
         arduboy.drawLine(xStart, yStart, xTarget, yTarget, BLACK);
+      }
+
 
       return;
 
@@ -338,6 +344,9 @@ struct tower {
       if (isFramesMod2) {
         // calculate radius of shock, + isFramesMod2 would be a smooth number
         uint8_t shockRadius = getRange() - (getShockwaveMaxTime() - getState());
+
+        if (gameMode != MODE_MAINMENU)
+          sound.tones(soundWeaponWave);
 
         arduboy.drawCircle(xCenter, yCenter, shockRadius, BLACK);
       }
@@ -375,8 +384,20 @@ struct tower {
       setState(reloadTime);
     }
 
-    if (gameMode != MODE_MAINMENU)
-      sound.tones(soundShoot);
+    if (gameMode != MODE_MAINMENU) {
+      // the sound of minigun and cannon
+      if (type == TOWER_GATLING || type == TOWER_CANNON) {
+        sound.tones(soundWeaponNormal);
+
+        // the sound of the railgun and ice tower
+      } else if (type == TOWER_RAILGUN || type == TOWER_FROST) {
+        sound.tones(soundWeaponLight);
+
+        // the sound of the flame tower
+      } else if (type == TOWER_FLAME) {
+        sound.tones(soundWeaponWave);
+      }
+    }
 
     // shoot the bullet
     pM.add(xStart, yStart, type, lvl, projState, boost);
@@ -405,7 +426,7 @@ struct tower {
 };
 
 struct towerManager {
-  static const uint8_t maximum = 40;
+  static const uint8_t maximum = MAX_TOWERS;
   tower list[maximum];
 
   void clearTower(uint8_t towerIndex) {

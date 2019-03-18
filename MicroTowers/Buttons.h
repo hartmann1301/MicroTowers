@@ -127,6 +127,9 @@ void goToMainMenu() {
   // shift right menu to the right end, for map border drawing
   xPosRightMenu = MENU_RIGHT_MAX;
 
+  // calculate all the stars the player has
+  setStarsFromEEPROM();
+
   // delete all existing enemys on map
   eM.init();
   aM.init();
@@ -175,8 +178,8 @@ void buttonsMainMenu() {
         // is used to load scores from eeprom
         isInCampainMode = true;
 
-        // calculate all the stars the player has
-        campainStars = getStarsFromEEPROM();
+        // to show already the right score
+        updateCurrentScore();
 
         break;
       case MAIN_EDITOR:
@@ -217,7 +220,6 @@ void buttonsMainMenu() {
 
   // auto mode of the railgun is now off
   if ((arduboy.pressed(UP_BUTTON) || arduboy.pressed(DOWN_BUTTON)) && !controlRailgunTower) {
-    Serial.println("start railgun control");
 
     controlRailgunTower = true;
   }
@@ -230,10 +232,10 @@ void buttonsMapsCampain() {
   // go to next mode
   if (arduboy.justReleased(A_BUTTON) && getUnlockedMaps() != indexMapsCampain) {
 
-    gameMode = MODE_PLAYING;
-
     // put the current map from pgm space to mapComposition array
     loadMap(indexMapsCampain);
+
+    gameMode = MODE_PLAYING;
   }
 
   if (isTimeoutActive())
@@ -245,7 +247,7 @@ void buttonsMapsCampain() {
 #ifdef DEBUG_CAMPAIN_STARS
   // to see how the maps will unlock
   checkLeftRight(campainStars, MAPS_IN_CAMPAIN * 3 + 1);
-#endif 
+#endif
 
   // get the score of the new map();
   if (arduboy.pressed(UP_BUTTON) || arduboy.pressed(DOWN_BUTTON))
@@ -281,8 +283,9 @@ void buttonsMapsEditor() {
   // shifts maps up and down
   checkUpDown(indexMapsEditor, EDITOR_MAP_SLOTS);
 
-  // toggles between edit and play mode
-  checkLeftRight(isInEditMode, 2);
+  // toggle editor mode
+  if (arduboy.justPressed(LEFT_BUTTON) || arduboy.justPressed(RIGHT_BUTTON))
+    isInEditMode = !isInEditMode;
 
   // get the score of the new map();
   if (arduboy.pressed(UP_BUTTON) || arduboy.pressed(DOWN_BUTTON))
@@ -318,6 +321,9 @@ void buttonsPlaying() {
       // add prototype tower to the current cursor position
       tM.add(xCursor, yCursor, TOWER_PROTOTYPE);
 
+      // set the 4 map notes to tower for path calculation
+      mM.set2x2Nodes(xCursor, yCursor, MAP_TOWER);
+
       // update the global var to use it while buying
       updateTowerGlobals();
 
@@ -332,6 +338,9 @@ void buttonsPlaying() {
         // erase test prototype tower again
         tM.sell(towerIndex);
       }
+
+      // set the 4 map notes to free again to stop prototype blocking
+      mM.set2x2Nodes(xCursor, yCursor, MAP_FREE);
 
       // check if cursor area is a tower
     } else if (isCursorAreaType(MAP_TOWER)) {
@@ -356,7 +365,7 @@ void buttonsPlaying() {
 
     } else  {
       // put something is in cursor area message
-      setInfoMessage(INFO_BLOCKED_AREA);  
+      setInfoMessage(INFO_BLOCKED_AREA);
     }
   }
 

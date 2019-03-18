@@ -66,21 +66,30 @@ void drawMapInfos(uint8_t num) {
 
   } else if (gameMode == MODE_MAPS_EDITOR) {
 
-    // draw between hints
+    // hints to show the mode can be changed
+    drawLeftHint(12, 57);
+    drawRightHint(52, 57);
+
+    // print between hints
+    mF.setCursor(22, 57);
     if (isInEditMode) {
-
-      drawLeftHint(10, 10);
-
-      mF.setCursor(20, 10);
       mF.print(F("EDIT"));
 
+      uint8_t xPos = 18;
+      for (uint8_t i = 0; i < 4; i++) {
+        // draw icon of editor items
+        drawBitmapFast(xPos, 9, editorSymbole, 5, i, false);
+
+        xPos += 7;
+      }
+
       // draw a nice looking house
-      arduboy.drawBitmap(50, 7, mapHouse1, 11, 11, BLACK);
+      arduboy.drawBitmap(48, 7, mapHouse1, 11, 11, BLACK);
 
     } else {
-      drawScoreStars();
+      mF.print(F("PLAY"));
 
-      drawRightHint(64, 10);
+      drawScoreStars();
     }
   }
 
@@ -101,9 +110,9 @@ void drawMapInfos(uint8_t num) {
 
     // write how many stars are needed for this map
     mF.setCursor(10, 44);
-    mF.print((num - 4) * 2);   
+    mF.print((num - 4) * 2);
     mF.print(F(" STARS"));
-    
+
   } else {
 
     mF.print(F("HIGHSCORE"));
@@ -120,6 +129,11 @@ void drawMapInfos(uint8_t num) {
   drawBitmapFast(5, 55, rankSymbols, 5, 1, false, BLACK);
   mF.setCursor(12, 57);
   mF.print(campainStars);
+
+  // draw coin icon
+  drawBitmapFast(40, 56, symbolSet, ICON_WIDTH, SYMBOL_COIN, false);
+  mF.setCursor(49, 57);
+  mF.print(getProgMem(mapStartCoins, num));
 }
 
 void drawCenterMapHighlighter() {
@@ -255,6 +269,12 @@ void setVeritcalOffset(uint8_t &yPos, bool isActive) {
 
 void drawPlayingTowerInfo() {
 
+#ifndef USE_TOWER_LEXICON
+  // this placeholder is printed to save some bytes
+  mF.setCursor(16, 25);
+  mF.print(F("DEBUG VERSION"));
+  
+#else
   uint8_t yPos = 2;
   for (uint8_t i = 0; i < 5; i++) {
 
@@ -316,23 +336,6 @@ void drawPlayingTowerInfo() {
         category = getTowerCategory(indexBuildMenu);
         if (category != 3)
           drawBitmapFast(80, yPos, waveTypes, 7, category + 1, false);
-
-        /* print the category name of the tower
-          switch (getTowerCategory(indexBuildMenu)) {
-          case 0:
-            mF.print(F("NORMAL"));
-            break;
-          case 1:
-            mF.print(F("LIGHT"));
-            break;
-          case 2:
-            mF.print(F("WAVE"));
-            break;
-          case 3:
-            mF.print(F("-"));
-            break;
-          }
-        */
         break;
     }
     // set y position of the next line
@@ -352,19 +355,19 @@ void drawPlayingTowerInfo() {
       mF.print(F("SLOWS ENEMYS"));
       break;
     case TOWER_RAILGUN:
-      mF.print(F("HITS ALL IN LINE"));
+      mF.print(F("HITS IN LINE"));
       break;
     case TOWER_FLAME:
       mF.print(F("MULTIPLE HITS"));
       break;
     case TOWER_LASER:
-      mF.print(F("100% HIT CHANCE"));
+      mF.print(F("100% HIT"));
       break;
     case TOWER_SHOCK:
       mF.print(F("HITS EVERYONE"));
       break;
     case TOWER_SUPPORT:
-      mF.print(F("BOOSTS OTHERS"));
+      mF.print(F("BOOSTS"));
       break;
   }
 
@@ -383,6 +386,7 @@ void drawPlayingTowerInfo() {
     // set y position for next hint
     yHint += 5;
   }
+#endif
 }
 
 void drawPlayingTowerMenu() {

@@ -4,14 +4,9 @@
 const uint16_t soundFinishedWave [] PROGMEM = {550, 100, 700, 100, 950, 100, 850, 100, TONES_END};
 const uint16_t soundSomethingGood [] PROGMEM = {1100, 50, 400, 50, 150, 50, TONES_END};
 const uint16_t soundSomethingBad [] PROGMEM = {250, 50, 350, 50, 450, 100, 500, 50, TONES_END};
-const uint16_t soundShoot [] PROGMEM = {150, 50, TONES_END};
-
-/*
-  const uint16_t soundStdWeapon [] PROGMEM = {100, 50, 75, 50, 50, 50, TONES_END};
-  const uint16_t soundLaserWeapon [] PROGMEM = {300, 50, 350, 50, 400, 50, TONES_END};
-
-  const uint16_t soundFlameWeapon [] PROGMEM = {40, 50, 60, 50, 60, 50, 50, 50, TONES_END};
-*/
+const uint16_t soundWeaponNormal [] PROGMEM = {150, 50, TONES_END};
+const uint16_t soundWeaponLight [] PROGMEM = {350, 50, TONES_END};
+const uint16_t soundWeaponWave [] PROGMEM = {50, 50, TONES_END};
 
 // this is also the eeprom key
 const uint8_t eepromKey[] PROGMEM  = {"arduTD"};
@@ -20,7 +15,7 @@ const uint8_t eepromKey[] PROGMEM  = {"arduTD"};
 // GATLING, CANNON, FROST, RAILGUN, FLAME, LASER, SHOCK, SUPPORT
 
 const uint8_t towerDamages [] PROGMEM = {
-    95,       60,     10,    150,    30,    50,    20,  BOOST_PRO_LVL
+    95,       60,     10,    150,    22,    50,    20,  BOOST_PRO_LVL
 };        
 
 const uint8_t towerCategories [] PROGMEM = {
@@ -32,7 +27,7 @@ const uint8_t towerBasicPrices [] PROGMEM = {
 };
 
 const uint8_t towerExtraPrices [] PROGMEM = {
-  12,  16,    8,   12,   30,    4,   40,    8
+   6,   8,    4,    6,   15,    2,   20,    4
 };
 
 // in frames but will be times 2 because is checked only every second frame
@@ -71,11 +66,11 @@ const int8_t yPostionsNear [] PROGMEM = {
 // difficulty is percent if hp a wave has, going over 200% could case uint16_t overflows!
 // 1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20
 const uint8_t mapDifficulties [] PROGMEM = {
-   80,  90, 100, 110, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+   80,  90, 100, 110, 110, 100,  90, 110,  90, 100, 70, 110, 120,  90,  120, 100, 110, 100,  90, 110,
 };
 
 const uint8_t mapStartCoins [] PROGMEM = {
-   50,  60,  50,  50,  90,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80,  80
+   50,  60,  70,  50,  90, 100, 150, 180,  70,  80,  80,  80, 200,  80,  70,  80,  70,  80, 120, 150
 };
 
 // in pixels but will always be multiplyed by 2 and an offset added

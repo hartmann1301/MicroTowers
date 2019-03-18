@@ -44,14 +44,26 @@ void initEEPROM () {
   }
 
 #ifdef DEBUG_FAKE_SCORES
-    // write some random scores to the eeprom slots
-    for (uint8_t i = 0; i < MAPS_IN_CAMPAIN * 2; i++) {
-      set2BytesData(EEPROM_MAP_SCORES + i * 2, 100 + rand() % 899);
-    }
+  // write some random scores to the eeprom slots
+  for (uint8_t i = 0; i < MAPS_IN_CAMPAIN; i++) {
+    // make some score
+    uint16_t fakeScore = 100 + rand() % 899;
+
+    //Serial.println("address: " + String(EEPROM_MAP_SCORES + i * 2) + "  fakeScore:" + String(fakeScore));
+
+    // write it so eeprom
+    set2BytesData(EEPROM_MAP_SCORES + i * 2, fakeScore);
+  }
+
+  // commit fake scores
+#ifdef ESP8266
+  EEPROM.commit();
+#endif
+
 #endif
 
   // return because key was found in eeprom
-  if (keyInEEPROM) 
+  if (keyInEEPROM)
     return;
 
   // clear all
@@ -67,6 +79,7 @@ void initEEPROM () {
   }
 
 #ifdef ESP8266
+  // commit key
   EEPROM.commit();
 #endif
 }
@@ -110,7 +123,7 @@ void saveMapToEEPROM(uint8_t mapNumber) {
 #endif
 }
 
-uint8_t getStarsFromEEPROM() {
+uint8_t setStarsFromEEPROM() {
 
   // reset the global campain stars
   campainStars = 0;
@@ -123,6 +136,9 @@ uint8_t getStarsFromEEPROM() {
     // add the stars to global
     campainStars += score / POINTS_PRO_STAR;
   }
+
+  // this is just for the emulator because i think it has no eeprom simu
+  //campainStars = 19;
 }
 
 
