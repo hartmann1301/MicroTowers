@@ -70,7 +70,14 @@ For every 250 Points you get a star.
 Yes, there is a map editor where you can create new maps. To store those self created maps on the EEPROM there a 5 slots. In the slot list you can choose with left/right if you wanna play or edit the map. Creating a map is like building towers but instead of towers you can build map tiles.
 
 # Enemies 
-The five types of enemies will attack your headquarter in groups of five. They can come in 6 different combinations, it is eigther one of the five types or all of them in a mix.
+The five types of enemies will attack your headquarter in groups of five. They can come in 6 different combinations, it is eigther one of the five types or all of them in a mix. The icon or letter in front of the wavecounter tells you the group type:
+
+Type |  Info | only 50% Damage
+The letter D | Default enemies, every towers does the full damage | -
+Icon arrow right | Fast enemies, but a bit weaker than others | -
+Icon bullet | those enemies will resist NORMAL damage | MINIGUN and CANNON towers
+Icon laser beam | those enemies will resist LIGHT damage | RAILGUN and LASER towers
+Icon two waves | those enemies will resist WAVE damage | FLAME and SHOCK towers
 
 # Towers
 There are eight different types of towers, for more information go to the ingame tower lexicon. You access it after building a tower, selecting it and press on menu item INFOS.
