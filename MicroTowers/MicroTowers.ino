@@ -19,8 +19,9 @@
   This is MicroTowers, a game created for Arduboy.
 
   For lots of information and how to play see:
+  https://github.com/hartmann1301/MicroTowers
 
-  Version:
+  Version: 1.0    18.03.2019    release
 */
 
 #include "Globals.h"
@@ -86,7 +87,7 @@ void setup() {
 }
 
 void loop() {
-    
+
   // if normal speed is false it will be max speed
   if (!(arduboy.nextFrame()) && isNormalSpeed)
     return;
@@ -102,7 +103,7 @@ void loop() {
   isFramesMod2 = gameFrames % 2;
 
   checkButtons();
-  
+
   if (!inMapsListMode(gameMode) && gameMode != MODE_PLAYING_INFO && gameMode != MODE_ENEMIES && gameMode != MODE_CREDITS)
     updateGame();
 
