@@ -11,7 +11,7 @@ void tryToBuildTower() {
   if (currentCoins < price) {
 
     // stay in menu but show this message
-    setInfoMessage(INFO_TO_LESS_COINS);
+    setInfoMessage(infoPopup::TO_LESS_COINS);
 
     return;
   }
@@ -23,7 +23,7 @@ void tryToBuildTower() {
   tM.list[towerIndex].setType(indexBuildMenu);
 
   // set the 4 map notes to tower
-  mM.set2x2Nodes(xCursor, yCursor, MAP_TOWER);
+  mM.set2x2Nodes(xCursor, yCursor, MapTile::TOWER);
 
   sound.tones(soundSomethingBad);
 
@@ -31,7 +31,7 @@ void tryToBuildTower() {
   tM.setBoosts();
 
   // if tower was placed return to playing mode
-  gameMode = MODE_PLAYING;
+  gameMode = GameMode::PLAYING;
 }
 
 void tryToUpgradeTower() {
@@ -46,7 +46,7 @@ void tryToUpgradeTower() {
   if (currentCoins < priceUpdate) {
 
     // stay in menu but show this message
-    setInfoMessage(INFO_TO_LESS_COINS);
+    setInfoMessage(infoPopup::TO_LESS_COINS);
 
     return;
   }
@@ -64,7 +64,7 @@ void tryToUpgradeTower() {
     tM.setBoosts();
 
   // if update was done return to game
-  gameMode = MODE_PLAYING;
+  gameMode = GameMode::PLAYING;
 }
 
 void sellTower() {
@@ -77,7 +77,7 @@ void sellTower() {
   sound.tones(soundSomethingGood);
 
   // if tower was placed return to playing mode
-  gameMode = MODE_PLAYING;
+  gameMode = GameMode::PLAYING;
 }
 
 void resetEEPROM() {
@@ -106,22 +106,22 @@ void loadMap(uint8_t mapNumber) {
   // is incremented in info line to start with 1 not 0
   waveCounter = 0;
 
-  // to always start with the cyborgs type 0
-  enemysRace = 0;
+  // set first enemy wave type
+  enemysRace = EnemyRace::CYBORG;
   waveType = 0;
 
   // to be able to start immediatelly
   nextEnemyFrame = 0;
-  sendWaveStatus = WAVE_FINISHED;
+  waveStatus = WaveStatus::FINISHED;
 
   // if playing show message that wave can be triggered
   if (inPlayingMode(gameMode))
-    setInfoMessage(INFO_SEND_NEXT_WAVE);
+    setInfoMessage(infoPopup::SEND_NEXT_WAVE);
 
   // every map has a different difficulty needed for hp calulation
   mapDifficulty = getProgMem(mapDifficulties, mapNumber);
 
-  if (gameMode == MODE_MAPS_CAMPAIN) {
+  if (gameMode == GameMode::MAPS_CAMPAIN) {
     // load map specific coins
     currentCoins = getProgMem(mapStartCoins, mapNumber);
     
@@ -139,17 +139,17 @@ void loadMap(uint8_t mapNumber) {
   for (uint8_t n = 0; n < NODES; n++) {
 
     // reads from program space or eeprom
-    uint8_t data = mM.getStoredMapNode(n, mapNumber);
+    MapTile tile = mM.getStoredMapNode(n, mapNumber);
 
     // save position of headquarter
-    if (data == MAP_TOWER) {
+    if (tile == MapTile::TOWER) {
       headquarterPosition = n;
 
       //Serial.println("headquarterPosition is: " + String(headquarterPosition));
     }
 
     // write to mapCompositon
-    mM.setNode(n, data);
+    mM.setNode(n, tile);
   }
 }
 
@@ -214,8 +214,8 @@ void mainMenuWaveSender() {
   waveCounter += (6 + getUnlockedMaps() / 3);
 
   // start sending a new wave if the last is done
-  if (sendWaveStatus == WAVE_FINISHED)
-    sendWaveStatus = WAVE_START;
+  if (waveStatus == WaveStatus::FINISHED)
+    waveStatus = WaveStatus::START;
 }
 
 void mainScheduler() {
@@ -229,56 +229,56 @@ void mainScheduler() {
     drawInfoLine();
   }
 
-  if (gameMode == MODE_MAINMENU) {
+  if (gameMode == GameMode::MAINMENU) {
     drawMainMenu();
 
     mainMenuWaveSender();
 
-  } else if (gameMode == MODE_MAPS_CAMPAIN) {
+  } else if (gameMode == GameMode::MAPS_CAMPAIN) {
     drawMapsListCampain();
 
-  } else if (gameMode == MODE_MAPS_EDITOR) {
+  } else if (gameMode == GameMode::MAPS_EDITOR) {
     drawMapsListEditor();
 
   } else if (inPlayingMode(gameMode)) {
 
-    if (gameMode == MODE_PLAYING) {
+    if (gameMode == GameMode::PLAYING) {
       shiftMenuOut();
 
-    } else if (gameMode == MODE_PLAYING_BUILD) {
+    } else if (gameMode == GameMode::PLAYING_BUILD) {
       drawPlayingBuildMenu();
 
-    } else if (gameMode == MODE_PLAYING_TOWER) {
+    } else if (gameMode == GameMode::PLAYING_TOWER) {
       drawPlayingTowerMenu();
 
-    } else if (gameMode == MODE_PLAYING_INFO) {
+    } else if (gameMode == GameMode::PLAYING_INFO) {
 
       shiftMenuOut();
 
       drawPlayingTowerInfo();
 
-    } else if (gameMode == MODE_PLAYING_END) {
+    } else if (gameMode == GameMode::PLAYING_END) {
       drawEndGameInfo();
     }
 
   } else if (inEditorMode(gameMode)) {
 
-    if (gameMode == MODE_EDITOR) {
+    if (gameMode == GameMode::EDITOR) {
       shiftMenuOut();
 
-    } else if (gameMode == MODE_EDITOR_MENU) {
+    } else if (gameMode == GameMode::MENU_EDITOR_MENU) {
       drawEditorMenu();
     }
 
-  } else if (gameMode == MODE_CREDITS) {
+  } else if (gameMode == GameMode::CREDITS) {
     drawCredits();
 
-  } else if (gameMode == MODE_ENEMIES) {
+  } else if (gameMode == GameMode::ENEMIES) {
     drawEnemiesInfos();
   }
 
   // must be drawed at least because of the white parts
-  if (gameMode == MODE_PLAYING || gameMode ==  MODE_EDITOR || gameMode ==  MODE_EDITOR_MENU)
+  if (gameMode == GameMode::PLAYING || gameMode ==  GameMode::EDITOR || gameMode ==  GameMode::MENU_EDITOR_MENU)
     drawCursor();
 }
 
@@ -293,7 +293,7 @@ void updateGame() {
 
   tM.update();
 
-  if (gameMode != MODE_PLAYING_END)
+  if (gameMode != GameMode::PLAYING_END)
     eM.update();
 
   pM.update();

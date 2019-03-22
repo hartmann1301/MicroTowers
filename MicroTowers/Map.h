@@ -1,13 +1,6 @@
 #ifndef Map_h
 #define Map_h
 
-//#define DEBUG_CREATE_MAPS
-
-#ifdef ESP8266
-//#define DEBUG_PATH_MAP
-//#define DEBUG_PATH_PRINT
-#endif
-
 struct pathList {
   static const uint8_t maximum = 20;
   uint8_t len = 0;
@@ -46,7 +39,7 @@ struct mapMangager {
     return data << getShifts(node);
   }
 
-  uint8_t getCurrentMapNode(uint8_t node) {
+  MapTile getCurrentMapNode(uint8_t node) {
 
     // because there are 4 byte in every pgm space map byte
     uint8_t index = node / 4;
@@ -57,21 +50,21 @@ struct mapMangager {
     uint8_t shifts = getShifts(node);
 
     // shift data to get the correct two bits
-    return (rawData & (0b00000011 << shifts)) >> shifts;
+    return MapTile((rawData & (0b00000011 << shifts)) >> shifts);
   }
 
-  uint8_t getCurrentMapNode(uint8_t xR, uint8_t yR) {
+  MapTile getCurrentMapNode(uint8_t xR, uint8_t yR) {
     return getCurrentMapNode(getIndex(xR, yR));
   }
 
-  uint8_t getStoredMapNode(uint8_t node, int8_t mapNumber) {
+  MapTile getStoredMapNode(uint8_t node, int8_t mapNumber) {
 
     // because there are 4 byte in every pgm space map byte
     uint8_t index = node / 4;
 
     // read data for 4 bytes, from eeprom or program space
     uint8_t rawData;
-    if (gameMode == MODE_MAPS_EDITOR) {
+    if (gameMode == GameMode::MAPS_EDITOR) {
 
       if (mapNumber == 0) {
         // read from global map array because map 0 was copied here from eeprom
@@ -91,10 +84,10 @@ struct mapMangager {
     uint8_t shifts = getShifts(node);
 
     // shift data to get the correct two bits
-    return (rawData & (0b00000011 << shifts)) >> shifts;
+    return MapTile((rawData & (0b00000011 << shifts)) >> shifts);
   }
 
-  void setNode(uint8_t node, uint8_t data) {
+  void setNode(uint8_t node, MapTile data) {
 
     // holds the index
     uint8_t index = node / 4;
@@ -105,15 +98,15 @@ struct mapMangager {
     mapComposition[index] &= ~(0b00000011 << getShifts(node));
 
     // write only the 2 new bits
-    mapComposition[index] |= getShiftedData(node, data);
+    mapComposition[index] |= getShiftedData(node, static_cast<uint8_t>(data));
   }
 
-  void setNode(uint8_t xR, uint8_t yR, uint8_t type) {
+  void setNode(uint8_t xR, uint8_t yR, MapTile type) {
 
     setNode(getIndex(xR, yR), type);
   }
 
-  void set2x2Nodes(uint8_t towerIndex, uint8_t type) {
+  void set2x2Nodes(uint8_t towerIndex, MapTile type) {
     //Serial.println("set2x2Nodes");
 
     // one tower uses 4 nodes
@@ -126,7 +119,7 @@ struct mapMangager {
     mapChanged = true;
   }
 
-  void set2x2Nodes(uint8_t xR, uint8_t yR, uint8_t type) {
+  void set2x2Nodes(uint8_t xR, uint8_t yR, MapTile type) {
     set2x2Nodes(getIndex(xR, yR), type);
   }
 
@@ -156,11 +149,11 @@ struct mapMangager {
 
         switch (getCurrentMapNode(index)) {
 
-          case MAP_FREE:
+          case MapTile::FREE:
             Serial.printf(" %02d ", mapCosts[index]);
             break;
 
-          case MAP_TOWER:
+          case MapTile::TOWER:
             if (index == headquarterPosition) {
               Serial.print("[HQ]");
             } else {
@@ -168,11 +161,11 @@ struct mapMangager {
             }
             break;
 
-          case MAP_ROCK:
+          case MapTile::ROCK:
             Serial.print("[__]");
             break;
 
-          case MAP_NOBUILD:
+          case MapTile::NOBUILD:
             Serial.printf(".%02d.", mapCosts[index]);
             break;
         }
@@ -248,15 +241,15 @@ struct mapMangager {
       return false;
 
     // check left node
-    if (getCurrentMapNode(getIndex(xR - 1, yR)) != MAP_ROCK)
+    if (getCurrentMapNode(getIndex(xR - 1, yR)) != MapTile::ROCK)
       return false;
 
     // check top node
-    if (getCurrentMapNode(getIndex(xR, yR - 1)) != MAP_ROCK)
+    if (getCurrentMapNode(getIndex(xR, yR - 1)) != MapTile::ROCK)
       return false;
 
     // check top left node
-    if (getCurrentMapNode(getIndex(xR - 1, yR - 1)) != MAP_ROCK)
+    if (getCurrentMapNode(getIndex(xR - 1, yR - 1)) != MapTile::ROCK)
       return false;
 
     return true;
@@ -278,13 +271,13 @@ struct mapMangager {
         uint8_t index = getIndex(xR, yR);
 
         // get on of the four map states
-        uint8_t currentMap = getCurrentMapNode(index);
+        MapTile currentMap = getCurrentMapNode(index);
 
-        if (currentMap == MAP_TOWER && index == headquarterPosition) {
+        if (currentMap == MapTile::TOWER && index == headquarterPosition) {
           // headquarter postition was saved while loading the map, tower are draw with manager
-          drawBitmapFast(xPos + 1, yPos - 1, editorSymbole, 5, EDITOR_HQ, false);
+          drawBitmapFast(xPos + 1, yPos - 1, editorSymbole, 5, MENU_EDITOR_HQ, false);
 
-        } else if (currentMap == MAP_ROCK) {
+        } else if (currentMap == MapTile::ROCK) {
           // can be house or rock
           if (isHouse(xR, yR)) {
             // get start coordinates
@@ -311,7 +304,7 @@ struct mapMangager {
             drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR) % 4, yR % 2);
           }
 
-        } else if (currentMap == MAP_NOBUILD) {
+        } else if (currentMap == MapTile::NOBUILD) {
           // one of a few forest things
           drawBitmapFast(xPos + 1, yPos - 2, mapBlockades, 5, (xR + yR + xR % 3) % 6 + 4, yR % 2);
 
@@ -351,22 +344,20 @@ struct mapMangager {
 
         uint8_t index = getIndex(xR, yR);
 
-        uint16_t data = getStoredMapNode(index, mapNumber);
-
-        switch (data) {
-          case MAP_FREE:
+        switch (getStoredMapNode(index, mapNumber)) {
+          case MapTile::FREE:
             break;
 
-          case MAP_TOWER:
+          case MapTile::TOWER:
             // this headquarter is too big for the 4 pixels per node, so it can be covered a bit
             arduboy.drawRoundRect(xPos - 1, yPos - 1, 4, 4, 1, BLACK);
             break;
 
-          case MAP_ROCK:
+          case MapTile::ROCK:
             arduboy.fillRect(xPos, yPos, 2, 2, BLACK);
             break;
 
-          case MAP_NOBUILD:
+          case MapTile::NOBUILD:
             arduboy.drawPixel(xPos, yPos + 1, BLACK);
             arduboy.drawPixel(xPos + 1, yPos, BLACK);
             break;
@@ -383,9 +374,9 @@ struct mapMangager {
     if (arduboy.sBuffer[i] == IS_CLOSED)
       return;
 
-    uint8_t tmpData = getCurrentMapNode(i);
+    MapTile tmpData = getCurrentMapNode(i);
 
-    if (tmpData == MAP_ROCK || tmpData == MAP_TOWER)
+    if (tmpData == MapTile::ROCK || tmpData == MapTile::TOWER)
       return;
 
 #ifdef DEBUG_PATH_PRINT

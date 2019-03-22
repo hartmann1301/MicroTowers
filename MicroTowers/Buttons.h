@@ -37,23 +37,23 @@ void monitorButtons() {
 
 void editorSetNode() {
   // if same node is already on the map no need to recalculate because nothing changed
-  if (indexBuildMenu == mM.getCurrentMapNode(xCursor, yCursor))
+  if (indexBuildMenu == static_cast<uint8_t>(mM.getCurrentMapNode(xCursor, yCursor)))
     return;
 
   // this triggers calculating a new path
   mapChanged = true;
 
   // change the map
-  if (indexBuildMenu == EDITOR_HQ) {
+  if (indexBuildMenu == MENU_EDITOR_HQ) {
     // the place where the old headquarter was will be free
-    mM.setNode(headquarterPosition, MAP_FREE);
+    mM.setNode(headquarterPosition, MapTile::FREE);
 
     // the headquarter will be overwritten
     headquarterPosition = getIndex(xCursor, yCursor);
   }
 
   // the editor enum is the almost the same as the map enum
-  mM.setNode(xCursor, yCursor, indexBuildMenu);
+  mM.setNode(xCursor, yCursor, MapTile(indexBuildMenu));
 }
 
 void checkUpDown(uint8_t &value, const uint8_t vMax) {
@@ -77,7 +77,7 @@ void checkLeftRight(uint8_t &value, const uint8_t vMax) {
 void moveCursor() {
 
   // because the playing cursor can move less
-  uint8_t extraNode = uint8_t(gameMode == MODE_PLAYING);
+  uint8_t extraNode = uint8_t(gameMode == GameMode::PLAYING);
 
   if (isTimeoutActive())
     return;
@@ -89,7 +89,7 @@ void moveCursor() {
   setCursorTimeout();
 }
 
-bool isCursorAreaType(const uint8_t type) {
+bool isCursorAreaType(MapTile type) {
 
   if (mM.getCurrentMapNode(xCursor, yCursor) != type)
     return false;
@@ -108,7 +108,7 @@ bool isCursorAreaType(const uint8_t type) {
 
 void goToMainMenu() {
   // set main game mode
-  gameMode = MODE_MAINMENU;
+  gameMode = GameMode::MAINMENU;
 
 #ifdef DEBUG_FRAMES
   // to show how many frames are possible
@@ -122,7 +122,7 @@ void goToMainMenu() {
   controlRailgunTower = false;
 
   // set wave to finish so the auto sender can start a wave
-  sendWaveStatus = WAVE_FINISHED;
+  waveStatus = WaveStatus::FINISHED;
 
   // shift right menu to the right end, for map border drawing
   xPosRightMenu = MENU_RIGHT_MAX;
@@ -145,7 +145,7 @@ void goToMainMenu() {
     int8_t yPos = getProgMem(yMainMenuTower, t);
 
     // towers get a higher level with more unlocked maps
-    uint8_t lvl = min(3, ((getUnlockedMaps() - EDITOR_MAP_SLOTS) * 2 + t) / 8);
+    uint8_t lvl = min(3, ((getUnlockedMaps() - MENU_EDITOR_SLOTS) * 2 + t) / 8);
 
     tM.add(xPos, yPos, t, lvl);
   }
@@ -173,7 +173,7 @@ void buttonsMainMenu() {
   if (arduboy.justReleased(A_BUTTON)) {
     switch (indexMainMenu) {
       case MAIN_CAMPAIN:
-        gameMode = MODE_MAPS_CAMPAIN;
+        gameMode = GameMode::MAPS_CAMPAIN;
 
         // is used to load scores from eeprom
         isInCampainMode = true;
@@ -183,7 +183,7 @@ void buttonsMainMenu() {
 
         break;
       case MAIN_EDITOR:
-        gameMode = MODE_MAPS_EDITOR;
+        gameMode = GameMode::MAPS_EDITOR;
 
         // is used to load scores from eeprom
         isInCampainMode = false;
@@ -193,11 +193,11 @@ void buttonsMainMenu() {
 
         break;
       case MAIN_ENEMIES:
-        gameMode = MODE_ENEMIES;
+        gameMode = GameMode::ENEMIES;
 
         break;
       case MAIN_CREDITS:
-        gameMode = MODE_CREDITS;
+        gameMode = GameMode::CREDITS;
 
         break;
       case MAIN_SOUND:
@@ -235,7 +235,7 @@ void buttonsMapsCampain() {
     // put the current map from pgm space to mapComposition array
     loadMap(indexMapsCampain);
 
-    gameMode = MODE_PLAYING;
+    gameMode = GameMode::PLAYING;
   }
 
   if (isTimeoutActive())
@@ -268,12 +268,12 @@ void buttonsMapsEditor() {
       indexBuildMenu = 0;
 
       // should be done after loading the map
-      gameMode = MODE_EDITOR;
+      gameMode = GameMode::EDITOR;
 
     } else {
 
       // this needs to be done after loading the map!
-      gameMode = MODE_PLAYING;
+      gameMode = GameMode::PLAYING;
     }
   }
 
@@ -281,7 +281,7 @@ void buttonsMapsEditor() {
     return;
 
   // shifts maps up and down
-  checkUpDown(indexMapsEditor, EDITOR_MAP_SLOTS);
+  checkUpDown(indexMapsEditor, MENU_EDITOR_SLOTS);
 
   // toggle editor mode
   if (arduboy.justPressed(LEFT_BUTTON) || arduboy.justPressed(RIGHT_BUTTON))
@@ -307,65 +307,65 @@ void updateTowerGlobals() {
 void buttonsPlaying() {
 
   // trigger to send next wave
-  if (arduboy.justReleased(A_BUTTON) && sendWaveStatus == WAVE_FINISHED)
-    sendWaveStatus = WAVE_START;
+  if (arduboy.justReleased(A_BUTTON) && waveStatus == WaveStatus::FINISHED)
+    waveStatus = WaveStatus::START;
 
   if (arduboy.justReleased(B_BUTTON)) {
 
     // check if cursor is right in front of the entry for enemys
     if (xCursor == 0 && (yCursor == 3 || yCursor == 4)) {
-      setInfoMessage(INFO_ENTRY_BLOCK);
+      setInfoMessage(infoPopup::ENTRY_BLOCK);
 
-    } else if (isCursorAreaType(MAP_FREE)) {
+    } else if (isCursorAreaType(MapTile::FREE)) {
 
       // add prototype tower to the current cursor position
       tM.add(xCursor, yCursor, TOWER_PROTOTYPE);
 
       // set the 4 map notes to tower for path calculation
-      mM.set2x2Nodes(xCursor, yCursor, MAP_TOWER);
+      mM.set2x2Nodes(xCursor, yCursor, MapTile::TOWER);
 
       // update the global var to use it while buying
       updateTowerGlobals();
 
       // check if it is allowed to build here
       if (mM.findPath()) {
-        gameMode = MODE_PLAYING_BUILD;
+        gameMode = GameMode::PLAYING_BUILD;
 
       } else {
         // put not allowed to build here message to the info line
-        setInfoMessage(INFO_FORBIDDEN_BUILD);
+        setInfoMessage(infoPopup::FORBIDDEN_BUILD);
 
         // erase test prototype tower again
         tM.sell(towerIndex);
       }
 
       // set the 4 map notes to free again to stop prototype blocking
-      mM.set2x2Nodes(xCursor, yCursor, MAP_FREE);
+      mM.set2x2Nodes(xCursor, yCursor, MapTile::FREE);
 
       // check if cursor area is a tower
-    } else if (isCursorAreaType(MAP_TOWER)) {
+    } else if (isCursorAreaType(MapTile::TOWER)) {
 
       // update the global var to use it in tower menu
       updateTowerGlobals();
 
       // set cursor, to be sure it is not on sell
-      indexTowerMenu = TOWER_MENU_UPGRADE;
+      indexTowerMenu = MENU_TOWER_UPGRADE;
 
       //check if there are towers but the cursor is wrong over them
       if (towerIndex != NO_INDEX) {
-        gameMode = MODE_PLAYING_TOWER;
+        gameMode = GameMode::PLAYING_TOWER;
 
       } else {
         // use blocked area again
-        setInfoMessage(INFO_BLOCKED_AREA);
+        setInfoMessage(infoPopup::BLOCKED_AREA);
       }
 
-    } else if (isCursorAreaType(MAP_ROCK)) {
-      setInfoMessage(INFO_JUST_A_HOUSE);
+    } else if (isCursorAreaType(MapTile::ROCK)) {
+      setInfoMessage(infoPopup::JUST_A_HOUSE);
 
     } else  {
       // put something is in cursor area message
-      setInfoMessage(INFO_BLOCKED_AREA);
+      setInfoMessage(infoPopup::BLOCKED_AREA);
     }
   }
 
@@ -379,14 +379,14 @@ void buttonsPlayingMenuBuild() {
 
   // go back to play mode
   if (arduboy.justReleased(B_BUTTON)) {
-    gameMode = MODE_PLAYING;
+    gameMode = GameMode::PLAYING;
 
     // destroy the prototype tower
     tM.sell(towerIndex);
   }
 
   if (isLongPressed(stateButtonB))
-    gameMode = MODE_MAPS_CAMPAIN;
+    gameMode = GameMode::MAPS_CAMPAIN;
 
   if (isTimeoutActive())
     return;
@@ -400,11 +400,11 @@ void buttonsPlayingMenuTower() {
 
   if (arduboy.justReleased(A_BUTTON)) {
 
-    if (indexTowerMenu == TOWER_MENU_UPGRADE) {
+    if (indexTowerMenu == MENU_TOWER_UPGRADE) {
 
       tryToUpgradeTower();
 
-    } else if (indexTowerMenu == TOWER_MENU_INFO) {
+    } else if (indexTowerMenu == MENU_TOWER_INFO) {
 
       // get tower where the cursor is
       uint8_t towerIndex = tM.getTowerAt(xCursor, yCursor);
@@ -419,9 +419,9 @@ void buttonsPlayingMenuTower() {
       indexMapsEditor = lvl;
 
       // now go to the info screen
-      gameMode = MODE_PLAYING_INFO;
+      gameMode = GameMode::PLAYING_INFO;
 
-    } else if (indexTowerMenu == TOWER_MENU_SELL) {
+    } else if (indexTowerMenu == MENU_TOWER_SELL) {
 
       sellTower();
     }
@@ -429,7 +429,7 @@ void buttonsPlayingMenuTower() {
 
   // go back to play mode
   if (arduboy.justReleased(B_BUTTON))
-    gameMode = MODE_PLAYING;
+    gameMode = GameMode::PLAYING;
 
   if (isTimeoutActive())
     return;
@@ -442,7 +442,7 @@ void buttonsPlayingMenuTower() {
 void buttonsPlayingInfo() {
 
   if (arduboy.justReleased(A_BUTTON) || arduboy.justReleased(B_BUTTON))
-    gameMode = MODE_PLAYING;
+    gameMode = GameMode::PLAYING;
 
   if (isTimeoutActive())
     return;
@@ -462,7 +462,7 @@ void buttonsEditor() {
     editorSetNode();
 
   if (arduboy.justReleased(B_BUTTON)) {
-    gameMode = MODE_EDITOR_MENU;
+    gameMode = GameMode::MENU_EDITOR_MENU;
   }
 
 #ifdef DEBUG_CREATE_MAPS
@@ -477,10 +477,10 @@ void buttonsEditor() {
 void buttonsEditorMenu() {
 
   if (arduboy.justReleased(A_BUTTON) || arduboy.justReleased(B_BUTTON))
-    gameMode = MODE_EDITOR;
+    gameMode = GameMode::EDITOR;
 
   if (isLongPressed(stateButtonB))
-    gameMode = MODE_MAINMENU;
+    gameMode = GameMode::MAINMENU;
 
   if (isTimeoutActive())
     return;
@@ -573,7 +573,7 @@ void checkButtons() {
   checkLongPress(stateButtonA);
   checkLongPress(stateButtonB);
 
-  if (gameMode == MODE_MAINMENU) {
+  if (gameMode == GameMode::MAINMENU) {
     buttonsMainMenu();
 
   } else if (inMapsListMode(gameMode)) {
@@ -582,10 +582,10 @@ void checkButtons() {
     if (arduboy.justReleased(B_BUTTON))
       goToMainMenu();
 
-    if (gameMode == MODE_MAPS_CAMPAIN)
+    if (gameMode == GameMode::MAPS_CAMPAIN)
       buttonsMapsCampain();
 
-    if (gameMode == MODE_MAPS_EDITOR)
+    if (gameMode == GameMode::MAPS_EDITOR)
       buttonsMapsEditor();
 
   } else if (inPlayingMode(gameMode)) {
@@ -599,19 +599,19 @@ void checkButtons() {
       isNormalSpeed = !isNormalSpeed;
 
     // specifice mode funtions
-    if (gameMode == MODE_PLAYING) {
+    if (gameMode == GameMode::PLAYING) {
       buttonsPlaying();
 
-    } else if (gameMode == MODE_PLAYING_BUILD) {
+    } else if (gameMode == GameMode::PLAYING_BUILD) {
       buttonsPlayingMenuBuild();
 
-    } else if (gameMode == MODE_PLAYING_TOWER) {
+    } else if (gameMode == GameMode::PLAYING_TOWER) {
       buttonsPlayingMenuTower();
 
-    } else if (gameMode == MODE_PLAYING_INFO) {
+    } else if (gameMode == GameMode::PLAYING_INFO) {
       buttonsPlayingInfo();
 
-    } else if (gameMode == MODE_PLAYING_END) {
+    } else if (gameMode == GameMode::PLAYING_END) {
 
       // check for level unlock
       leaveToMainMenu();
@@ -620,8 +620,8 @@ void checkButtons() {
   } else if (inEditorMode(gameMode)) {
 
     // delete the whole map
-    if (isLongPressed(stateButtonA) && indexBuildMenu == EDITOR_DELETE)
-      memset(mapComposition, MAP_FREE, NODES_COMPRESSED);
+    if (isLongPressed(stateButtonA) && indexBuildMenu == MENU_EDITOR_DELETE)
+      memset(mapComposition, uint8_t(MapTile::FREE), NODES_COMPRESSED);
 
     // is global in editor to go back to main menu
     if (isLongPressed(stateButtonB)) {
@@ -632,14 +632,14 @@ void checkButtons() {
     }
 
     // specifice mode funtions
-    if (gameMode == MODE_EDITOR) {
+    if (gameMode == GameMode::EDITOR) {
       buttonsEditor();
 
-    } else if (gameMode == MODE_EDITOR_MENU) {
+    } else if (gameMode == GameMode::MENU_EDITOR_MENU) {
       buttonsEditorMenu();
     }
 
-  } else if (gameMode == MODE_CREDITS || gameMode == MODE_ENEMIES) {
+  } else if (gameMode == GameMode::CREDITS || gameMode == GameMode::ENEMIES) {
 
     // leave on button a and b button
     leaveToMainMenu();

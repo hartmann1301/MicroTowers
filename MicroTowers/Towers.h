@@ -234,7 +234,7 @@ struct tower {
     uint8_t type = getType();
 
     // control the railgun
-    if (type == TOWER_RAILGUN && gameMode == MODE_MAINMENU && controlRailgunTower == true) {
+    if (type == TOWER_RAILGUN && gameMode == GameMode::MAINMENU && controlRailgunTower == true) {
 
       // check if the railgun rotates or shoots by the player
       controlRailgun();
@@ -322,7 +322,7 @@ struct tower {
 
       if (isFramesMod2) {
 
-        if (gameMode != MODE_MAINMENU)
+        if (gameMode != GameMode::MAINMENU)
           sound.tones(soundWeaponLight);
 
         arduboy.drawLine(xStart, yStart, xTarget, yTarget, BLACK);
@@ -345,7 +345,7 @@ struct tower {
         // calculate radius of shock, + isFramesMod2 would be a smooth number
         uint8_t shockRadius = getRange() - (getShockwaveMaxTime() - getState());
 
-        if (gameMode != MODE_MAINMENU)
+        if (gameMode != GameMode::MAINMENU)
           sound.tones(soundWeaponWave);
 
         arduboy.drawCircle(xCenter, yCenter, shockRadius, BLACK);
@@ -384,7 +384,7 @@ struct tower {
       setState(reloadTime);
     }
 
-    if (gameMode != MODE_MAINMENU) {
+    if (gameMode != GameMode::MAINMENU) {
       // the sound of minigun and cannon
       if (type == TOWER_GATLING || type == TOWER_CANNON) {
         sound.tones(soundWeaponNormal);
@@ -447,7 +447,7 @@ struct towerManager {
     uint8_t mapIndex = list[towerIndex].index;
 
     // set the 4 map notes to tower
-    mM.set2x2Nodes(mapIndex, MAP_FREE);
+    mM.set2x2Nodes(mapIndex, MapTile::FREE);
 
     //Serial.println("sell Tower:" + String(towerIndex) + " at mapIndex:" + String(mapIndex));
 
@@ -550,7 +550,7 @@ struct towerManager {
 
       // set the 4 map notes to tower, this is only for the main menu
       if (type != TOWER_PROTOTYPE)
-        mM.set2x2Nodes(xR, yR, MAP_TOWER);
+        mM.set2x2Nodes(xR, yR, MapTile::TOWER);
 
       //Serial.println("add Tower:" + String(i) + " at mapIndex:" + String(mapIndex));
 

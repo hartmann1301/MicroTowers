@@ -4,7 +4,8 @@
 #define BIT_ENEMY_ACTIVE  6
 #define BIT_LOOKS_LEFT    7
 
-void setInfoMessage(uint8_t infoType);
+// prototype
+void setInfoMessage(infoPopup infoType);
 
 void endGame() {
 
@@ -15,7 +16,7 @@ void endGame() {
   updateEepromScore();
 
   // this is the gameover mode
-  gameMode = MODE_PLAYING_END;
+  gameMode = GameMode::PLAYING_END;
 }
 
 struct enemy {
@@ -150,7 +151,7 @@ struct enemy {
     if (dir == NO_DIRECTION) {
       //Serial.println("Enemy reached hq");
 
-      if (gameMode != MODE_MAINMENU)
+      if (gameMode != GameMode::MAINMENU)
         damageHQ();
 
       // no need for this enemy anymore
@@ -322,9 +323,9 @@ struct enemy {
 
   void drawHealthBar() {
 
-    // twopods are a bit to high, so minus one pixel of yPos
+    // twopods are a bit to high, so minus two pixels of yPos
     int8_t yPos = y;
-    if (enemysRace == ENEMY_RACE_TWOPOD)
+    if (enemysRace == EnemyRace::TWOPOD)
       yPos -= 2;
 
     uint16_t oneHealthPixel = currentWaveHp / 7;
@@ -398,7 +399,7 @@ struct enemyManager {
   void sendWaves() {
 
     // return because sending waves is not activated yet or done
-    if (sendWaveStatus == WAVE_FINISHED)
+    if (waveStatus == WaveStatus::FINISHED)
       return;
 
     // return because not frame for next enemy yet
@@ -406,7 +407,7 @@ struct enemyManager {
       return;
 
     // is done once when the wave was started
-    if (sendWaveStatus == WAVE_START) {
+    if (waveStatus == WaveStatus::START) {
 
       // sets how many enemys will be sent in this wave
       enemysOfWave = ENEMYS_IN_WAVE;
@@ -419,17 +420,17 @@ struct enemyManager {
         currentWaveHp -= (currentWaveHp / 4);
 
       // to skip this in the next call
-      sendWaveStatus = WAVE_ACTIVE;
+      waveStatus = WaveStatus::ACTIVE;
     }
 
     // wave if over if no enemy is left to spawn and map is empty
     if (count() == 0 && enemysOfWave == 0) {
 
-      if (gameMode != MODE_MAINMENU)
+      if (gameMode != GameMode::MAINMENU)
         sound.tones(soundFinishedWave);
 
       // to be able to start next wave
-      sendWaveStatus = WAVE_FINISHED;
+      waveStatus = WaveStatus::FINISHED;
 
       // first increment the waves level
       waveCounter++;
@@ -445,17 +446,20 @@ struct enemyManager {
 
       // if playing show message that next wave can be triggered
       if (inPlayingMode(gameMode))
-        setInfoMessage(INFO_SEND_NEXT_WAVE);
+        setInfoMessage(infoPopup::SEND_NEXT_WAVE);
 
       // if 6 waves passed than it is time to change the race
       if (waveType == TYPES_OF_WAVES - 1) {
 
-        // change race, this should only be done if no enemy is on the field
-        if (enemysRace < 2) {
-          enemysRace++;
+        // rotate race, this should only be done if no enemy is on the field
+        if (enemysRace == EnemyRace::CYBORG) {
+          enemysRace = EnemyRace::TWOPOD;
 
-        } else {
-          enemysRace = 0;
+        } else if (enemysRace == EnemyRace::TWOPOD) {
+          enemysRace = EnemyRace::MONSTER;
+
+        } else if (enemysRace == EnemyRace::MONSTER) {
+          enemysRace = EnemyRace::CYBORG;
         }
 
         //Serial.println("change Race to: " + String(enemysRace));

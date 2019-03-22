@@ -8,7 +8,7 @@ struct projectile {
   int8_t x;
   int8_t y;
 
-  // highNibble: type, Bit3: active, Bit2: impact, Bits1&0: level  
+  // highNibble: type, Bit3: active, Bit2: impact, Bits1&0: level
   uint8_t typeActiveLevel;
 
   // it is mostly the tower sektor plus some extra info
@@ -31,11 +31,9 @@ struct projectile {
 
   void setLevel(uint8_t value) {
     setLow2Bits(typeActiveLevel, value);
-  }  
+  }
 
   void draw() {
-    // strange switch thing, variable needs to be initialised here
-    int8_t flameSize;
 
     switch (getType()) {
       case TOWER_GATLING:
@@ -51,13 +49,15 @@ struct projectile {
         break;
 
       case TOWER_FLAME:
-        // get frame size
-        flameSize = 5 - getHighNibble(state);
+        {
+          // get frame size
+          int8_t flameSize = 5 - getHighNibble(state);
 
-        if (flameSize < 2)
-          flameSize = 2;
+          if (flameSize < 2)
+            flameSize = 2;
 
-        fillChessRect(x - 1, y - 1, flameSize, flameSize, BLACK);
+          fillChessRect(x - 1, y - 1, flameSize, flameSize, BLACK);
+        }
         break;
 
       case TOWER_RAILGUN:
@@ -169,9 +169,9 @@ struct projectileManager {
       list[i].x = x;
       list[i].y = y;
       list[i].setType(type);
-      list[i].setLevel(lvl);      
+      list[i].setLevel(lvl);
       list[i].state = state;
-      list[i].boost = boost;     
+      list[i].boost = boost;
       break;
     }
 
@@ -216,8 +216,8 @@ struct projectileManager {
       list[i].draw();
     }
 #ifdef DEBUG_PERFORMANCE
-  endMeasure();
-#endif      
+    endMeasure();
+#endif
   }
 
 };

@@ -9,7 +9,7 @@ void setInfoTextCursor(int8_t xPos) {
   mF.setCursor(xPos, yText);
 }
 
-void setInfoMessage(uint8_t infoType) {
+void setInfoMessage(infoPopup infoType) {
 
   // set default screen time in frames
   infoMsgTimeout = 50;
@@ -35,23 +35,23 @@ bool drawInfoMessage() {
   setInfoTextCursor(1);
 
   // print message, 18 letters fit in easiely more if 1 and i appears often
-  if (infoMsgType == INFO_FORBIDDEN_BUILD) {
+  if (infoMsgType == infoPopup::FORBIDDEN_BUILD) {
     //.print(F("123456789 12345678"));
     mF.print(F("NOT ALLOWED HERE"));
 
-  } else if (infoMsgType == INFO_BLOCKED_AREA) {
+  } else if (infoMsgType == infoPopup::BLOCKED_AREA) {
     mF.print(F("BLOCKED AREA"));
 
-  } else if (infoMsgType == INFO_ENTRY_BLOCK) {
+  } else if (infoMsgType == infoPopup::ENTRY_BLOCK) {
     mF.print(F("NO ENTRY BLOCKING"));
 
-  } else if (infoMsgType == INFO_JUST_A_HOUSE) {
+  } else if (infoMsgType == infoPopup::JUST_A_HOUSE) {
     mF.print(F("JUST A BUILDING"));
 
-  } else if (infoMsgType == INFO_SEND_NEXT_WAVE) {
+  } else if (infoMsgType == infoPopup::SEND_NEXT_WAVE) {
     mF.print(F("A: TO SEND WAVE"));
 
-  } else if (infoMsgType == INFO_TO_LESS_COINS) {
+  } else if (infoMsgType == infoPopup::TO_LESS_COINS) {
     mF.print(F("NOT ENOUGH COINS"));
 
   }
@@ -204,19 +204,19 @@ void drawInfosEditor() {
     setInfoTextCursor(64);
 
     // draw icon because side menu disappeared
-    if (gameMode == MODE_EDITOR) {
+    if (gameMode == GameMode::EDITOR) {
 
       switch (indexBuildMenu) {
-        case EDITOR_HQ:
+        case MENU_EDITOR_HQ:
           mF.print(F("THE HQ"));
           break;
-        case EDITOR_ROCK:
+        case MENU_EDITOR_ROCK:
           mF.print(F("A ROCK"));
           break;
-        case EDITOR_TREE:
+        case MENU_EDITOR_TREE:
           mF.print(F("FOREST"));
           break;
-        case EDITOR_DELETE:
+        case MENU_EDITOR_DELETE:
           mF.print(F("DELETE"));
           break;
       }
@@ -352,7 +352,7 @@ void drawInfosPlayingMenu() {
 
   const uint8_t xPosCoins = 85;
 
-  if (gameMode == MODE_PLAYING_BUILD) {
+  if (gameMode == GameMode::PLAYING_BUILD) {
 
     // write the name of index build menu
     drawCurrentTowerName();
@@ -360,13 +360,13 @@ void drawInfosPlayingMenu() {
     // draw price of the tower
     drawCoins(xPosCoins, getTowerPrice(indexBuildMenu, 0));
 
-  } else if (gameMode == MODE_PLAYING_TOWER) {
+  } else if (gameMode == GameMode::PLAYING_TOWER) {
 
     // fuckin switch lets me not declare it where i need it
     uint8_t towerBoost;
 
     switch (indexTowerMenu) {
-      case TOWER_MENU_UPGRADE:
+      case MENU_TOWER_UPGRADE:
 
         if (getPriceUpdate() == NO_PRICE) {
           mF.print(F("MAX LEVEL"));
@@ -379,7 +379,7 @@ void drawInfosPlayingMenu() {
         }
         break;
 
-      case TOWER_MENU_INFO:
+      case MENU_TOWER_INFO:
         mF.print(F("INFOS"));
 
         // tower index was saved while opening the menu
@@ -398,7 +398,7 @@ void drawInfosPlayingMenu() {
         // yes this is a return, because there will be no price
         return;
 
-      case TOWER_MENU_SELL:
+      case MENU_TOWER_SELL:
         mF.print(F("SELL"));
 
         // draw reward for selling the tower with upgrades
@@ -412,7 +412,7 @@ void drawInfosPlayingMenu() {
 void drawInfosPlayingAll() {
 
   // info screen need all the space
-  if (gameMode != MODE_PLAYING_INFO) {
+  if (gameMode != GameMode::PLAYING_INFO) {
 
     // draw the coins the play has
     drawCoins(1, currentCoins);
@@ -422,13 +422,13 @@ void drawInfosPlayingAll() {
       drawBitmapFast(112, yIcon, symbolSet, ICON_HEIGHT, SYMBOL_FASTMODE, false);
   }
 
-  if (gameMode == MODE_PLAYING || gameMode == MODE_PLAYING_END) {
+  if (gameMode == GameMode::PLAYING || gameMode == GameMode::PLAYING_END) {
     drawInfosPlaying();
 
-  } else if (gameMode == MODE_PLAYING_BUILD || gameMode == MODE_PLAYING_TOWER) {
+  } else if (gameMode == GameMode::PLAYING_BUILD || gameMode == GameMode::PLAYING_TOWER) {
     drawInfosPlayingMenu();
 
-  } else if (gameMode == MODE_PLAYING_INFO) {
+  } else if (gameMode == GameMode::PLAYING_INFO) {
     drawInfosPlayingInfo();
   }
 }
@@ -458,14 +458,14 @@ void drawEndGameInfo() {
 void drawInfoLine() {
 
   // rights part that shows the progress
-  if (gameMode == MODE_MAINMENU || gameMode == MODE_CREDITS || gameMode == MODE_ENEMIES)
+  if (gameMode == GameMode::MAINMENU || gameMode == GameMode::CREDITS || gameMode == GameMode::ENEMIES)
     drawMainMenuRank();
 
   // info messages have highest prio
   if (drawInfoMessage())
     return;
 
-  if (gameMode == MODE_MAINMENU) {
+  if (gameMode == GameMode::MAINMENU) {
     drawMainMenu();
 
   } else if (inPlayingMode(gameMode)) {
@@ -474,7 +474,7 @@ void drawInfoLine() {
   } else if (inEditorMode(gameMode)) {
     drawInfosEditor();
 
-  } else if (gameMode == MODE_CREDITS || gameMode == MODE_ENEMIES) {
+  } else if (gameMode == GameMode::CREDITS || gameMode == GameMode::ENEMIES) {
     drawInfosCreditsEnemies();
   }
 }

@@ -66,11 +66,11 @@ const int8_t yPostionsNear [] PROGMEM = {
 // difficulty is percent if hp a wave has, going over 200% could case uint16_t overflows!
 // 1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20
 const uint8_t mapDifficulties [] PROGMEM = {
-   80,  90, 100, 110, 110, 100,  90, 110,  90, 100, 70, 110, 120,  90,  120, 100, 110, 100,  90, 110,
+   80,  90, 100, 110, 110, 100,  90, 110,  90, 100, 80, 110, 130,  90,  120, 100, 110, 100,  90, 110,
 };
 
 const uint8_t mapStartCoins [] PROGMEM = {
-   50,  60,  70,  50,  90, 100, 150, 180,  70,  80,  80,  80, 200,  80,  70,  80,  70,  80, 120, 150
+   50,  60,  70,  50,  90, 100, 150, 180,  70,  80,  70,  80, 180,  80,  70,  80,  70,  80, 120, 150
 };
 
 // in pixels but will always be multiplyed by 2 and an offset added

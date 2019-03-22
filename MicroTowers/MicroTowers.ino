@@ -24,6 +24,7 @@
   Version: 1.0    18.03.2019    release
 */
 
+#include "Enums.h"
 #include "Globals.h"
 #include "Mem.h"
 #include "Img.h"
@@ -104,7 +105,7 @@ void loop() {
 
   checkButtons();
 
-  if (!inMapsListMode(gameMode) && gameMode != MODE_PLAYING_INFO && gameMode != MODE_ENEMIES && gameMode != MODE_CREDITS)
+  if (!inMapsListMode(gameMode) && gameMode != GameMode::PLAYING_INFO && gameMode != GameMode::ENEMIES && gameMode != GameMode::CREDITS)
     updateGame();
 
   mainScheduler();

@@ -2,29 +2,18 @@
 #define EEPROMUTILS_H
 
 #define EEPROM_EDITOR_SLOTS     EEPROM_STORAGE_SPACE_START
-#define EEPROM_MAP_SCORES       (EEPROM_EDITOR_SLOTS + NODES_COMPRESSED * EDITOR_MAP_SLOTS)
-#define EEPROM_GAME_KEY         (EEPROM_MAP_SCORES + (MAPS_IN_CAMPAIN + EDITOR_MAP_SLOTS) * 2)
+#define EEPROM_MAP_SCORES       (EEPROM_EDITOR_SLOTS + NODES_COMPRESSED * MENU_EDITOR_SLOTS)
+#define EEPROM_GAME_KEY         (EEPROM_MAP_SCORES + (MAPS_IN_CAMPAIN + MENU_EDITOR_SLOTS) * 2)
 #define EEPROM_NEEDED_BYTES     (EEPROM_GAME_KEY + EEPROM_KEY_LEN)
 
 uint16_t get2BytesData(uint16_t address) {
-
-  // it is important to cast to 16 bit variable before shifting!
-  uint16_t twoBytes = (uint16_t(EEPROM.read(address)) << 8) + EEPROM.read(address + 1);
-
-  //Serial.println("get2BytesData: " + String(twoBytes));
+  uint16_t twoBytes;
+  EEPROM.get(address, twoBytes);
   return twoBytes;
 }
 
 void set2BytesData(uint16_t address, uint16_t data) {
-  // write high byte
-  EEPROM.update(address, data >> 8);
-
-  // write low byte
-  EEPROM.update(address + 1, data & 0xff);
-
-  //Serial.println("write at: " + String(address) + " high byte :" + String(data >> 8));
-  //Serial.println("write at: " + String(address + 1) + " low byte :" + String(data & 0xff));
-
+  EEPROM.put(address, data);
 #ifdef ESP8266
   EEPROM.commit();
 #endif
@@ -145,7 +134,7 @@ uint8_t setStarsFromEEPROM() {
 
 void clearEepromScores() {
 
-  for (uint8_t i = 0; i < (MAPS_IN_CAMPAIN + EDITOR_MAP_SLOTS) * 2; i++) {
+  for (uint8_t i = 0; i < (MAPS_IN_CAMPAIN + MENU_EDITOR_SLOTS) * 2; i++) {
     EEPROM.update(EEPROM_MAP_SCORES + i, 0);
   }
 

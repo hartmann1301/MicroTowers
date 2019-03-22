@@ -186,16 +186,20 @@ bool isLongPressed(int8_t buttonState) {
   return buttonState > LONGPRESS_TIME;
 }
 
-bool inPlayingMode(uint8_t m) {
-  return m >= MODE_PLAYING_INFO && m <= MODE_PLAYING_END;
+bool inPlayingMode(GameMode m) {
+  return m == GameMode::PLAYING_INFO ||
+         m == GameMode::PLAYING || 
+         m == GameMode::PLAYING_BUILD || 
+         m == GameMode::PLAYING_TOWER || 
+         m == GameMode::PLAYING_END;
 }
 
-bool inEditorMode(uint8_t m) {
-  return m == MODE_EDITOR || m == MODE_EDITOR_MENU;
+bool inEditorMode(GameMode m) {
+  return m == GameMode::EDITOR || m == GameMode::MENU_EDITOR_MENU;
 }
 
-bool inMapsListMode(uint8_t m) {
-  return m == MODE_MAPS_CAMPAIN || m == MODE_MAPS_EDITOR;
+bool inMapsListMode(GameMode m) {
+  return m == GameMode::MAPS_CAMPAIN || m == GameMode::MAPS_EDITOR;
 }
 
 uint8_t getIndex(uint8_t xR, uint8_t yR) {

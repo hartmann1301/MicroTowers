@@ -169,7 +169,7 @@ void drawCursor() {
 
     uint8_t rotation = s < 2;
 
-    if (gameMode <= MODE_PLAYING_TOWER) {
+    if (gameMode <= GameMode::PLAYING_TOWER) {
       // draw 2x2 nodes cursor
       drawBitmapSlow(xPos + 1, yPos + 1, cursorFrame, 11, 11, isFramesMod2, rotation, i);
     } else {
@@ -179,7 +179,7 @@ void drawCursor() {
   }
 
   // the cursor will not be animated in the editor side menu
-  if (gameMode == MODE_EDITOR_MENU)
+  if (gameMode == GameMode::MENU_EDITOR_MENU)
     return;
 
   // do the animation increments only every default frame time
@@ -192,19 +192,19 @@ void drawCursor() {
     statCursor = 0;
 }
 
-void drawEnemy(int8_t x, int8_t y, uint8_t type, uint8_t race, uint8_t state, bool isLookingLeft) {
+void drawEnemy(int8_t x, int8_t y, uint8_t type, EnemyRace race, uint8_t state, bool isLookingLeft) {
 
-  // default width is 6, can be changed later
+  // default width for cyborgs and twopods
   uint8_t w = 6;
 
   const uint8_t *img;
-  if (race == ENEMY_RACE_CYBORG) {
+  if (race == EnemyRace::CYBORG) {
     img = enemyCyborgs;
 
-  } else if (race == ENEMY_RACE_TWOPOD) {
+  } else if (race == EnemyRace::TWOPOD) {
     img = enemyTwoPods;
 
-  } else {
+  } else if (race == EnemyRace::MONSTER) {
     img = enemyMonsters;
 
     // monsters need a bit more pixels

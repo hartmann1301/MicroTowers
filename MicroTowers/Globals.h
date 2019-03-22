@@ -28,6 +28,10 @@
 //#define DEBUG_CAMPAIN_STARS
 //#define DEGUG_DMG_ENEMYS
 
+//#define DEBUG_CREATE_MAPS
+//#define DEBUG_PATH_MAP
+//#define DEBUG_PATH_PRINT
+
 #define PS2_DAT       D6 // brown/green
 #define PS2_CMD       D0 // orange 
 #define PS2_SEL       D5 // yellow
@@ -87,7 +91,7 @@ ArduboyTones sound(arduboy.audio.enabled);
 
 #define MAINMENU_ITEMS      5
 #define MAPS_IN_CAMPAIN     20
-#define EDITOR_MAP_SLOTS    5
+#define MENU_EDITOR_SLOTS   5
 
 #define MENU_ITEMS_BUILD    8
 #define MENU_ITEMS_EDITOR   4
@@ -126,44 +130,13 @@ ArduboyTones sound(arduboy.audio.enabled);
 #define ROTCW 3
 
 // holds the main status of this game
-enum {
-  MODE_MAINMENU = 0,
-  MODE_MAPS_CAMPAIN,
-  MODE_MAPS_EDITOR,
-  MODE_PLAYING_INFO,
-  MODE_PLAYING,
-  MODE_PLAYING_BUILD,
-  MODE_PLAYING_TOWER,
-  MODE_PLAYING_END,
-  MODE_EDITOR,
-  MODE_EDITOR_MENU,
-  MODE_ENEMIES,
-  MODE_CREDITS
-};
-uint8_t gameMode;
-
-// the items in the main menu
-enum {
-  MAIN_CAMPAIN = 0,
-  MAIN_EDITOR,
-  MAIN_ENEMIES,
-  MAIN_CREDITS,
-  MAIN_SOUND
-};
+GameMode gameMode;
 
 // will be indecremted everytime it is shown
 uint8_t infoMsgTimeout = 0;
 
 // stores what kind of message is shown in the info bar
-enum {
-  INFO_FORBIDDEN_BUILD = 0,
-  INFO_BLOCKED_AREA,
-  INFO_ENTRY_BLOCK,
-  INFO_JUST_A_HOUSE,
-  INFO_SEND_NEXT_WAVE,
-  INFO_TO_LESS_COINS,
-};
-uint8_t infoMsgType = 0;
+infoPopup infoMsgType = infoPopup::FORBIDDEN_BUILD;
 
 // in this array the look and the behaviour of the current map is stored
 uint8_t mapComposition[NODES / 4];
@@ -229,20 +202,10 @@ uint8_t towerType;
 int8_t enemysOfWave;
 
 // every wave needs to be started by the player, see enum
-enum {
-  WAVE_START = 0,
-  WAVE_ACTIVE,
-  WAVE_FINISHED
-};
-uint8_t sendWaveStatus = WAVE_FINISHED;
+WaveStatus waveStatus = WaveStatus::FINISHED;
 
 // stores how the current enemys are looking
-enum {
-  ENEMY_RACE_CYBORG = 0,
-  ENEMY_RACE_TWOPOD,
-  ENEMY_RACE_MONSTER
-};
-uint8_t enemysRace = ENEMY_RACE_CYBORG;
+EnemyRace enemysRace = EnemyRace::CYBORG;
 
 // the more stars the more unlocked maps you get
 uint8_t campainStars = 0;
@@ -267,77 +230,5 @@ uint8_t indexTowerMenu = 0;
 uint8_t indexMapsCampain = 0;
 uint8_t indexMapsEditor = 0;
 uint8_t indexOptions = 0;
-
-enum {
-  TOWER_GATLING = 0,
-  TOWER_CANNON,
-  TOWER_FROST,
-  TOWER_RAILGUN,
-  TOWER_FLAME,
-  TOWER_LASER,
-  TOWER_SHOCK,
-  TOWER_SUPPORT,
-  TOWER_PROTOTYPE
-};
-
-enum {
-  C_NORMAL = 0,
-  C_LIGHT,
-  C_WAVE,
-  C_ELSE
-};
-
-enum {
-  ENEMY_IS_DEFAULT = 0,
-  ENEMY_IS_FAST,
-  ENEMY_RESITS_NORMAL,
-  ENEMY_RESITS_LIGHT,
-  ENEMY_RESITS_WAVES,
-  ENEMY_MIX
-};
-
-enum {
-  MAP_FREE = 0,
-  MAP_TOWER,
-  MAP_ROCK,
-  MAP_NOBUILD,
-};
-
-enum {
-  GO_RIGHT = 0,
-  GO_UP,
-  GO_LEFT,
-  GO_DOWN,
-  NO_DIRECTION
-};
-
-enum {
-  SYMBOL_CURSOR1 = 0,
-  SYMBOL_CURSOR2,
-  SYMBOL_COIN,
-  SYMBOL_HEART,
-  SYMBOL_UPGRADE,
-  SYMBOL_INFO,
-  SYMBOL_SELL,
-  SYMBOL_FASTMODE
-};
-
-enum {
-  ANIMATION_IMPACT = 0,
-  ANIMATION_RESIST
-};
-
-enum {
-  EDITOR_DELETE = 0,
-  EDITOR_HQ,
-  EDITOR_ROCK,
-  EDITOR_TREE
-};
-
-enum {
-  TOWER_MENU_UPGRADE = 0,
-  TOWER_MENU_INFO,
-  TOWER_MENU_SELL
-};
 
 #endif

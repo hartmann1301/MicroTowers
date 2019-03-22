@@ -18,7 +18,7 @@ void drawMapBorders() {
   } else {
 
     // with 8 tower there is no space for a right border
-    if (gameMode == MODE_PLAYING_BUILD)
+    if (gameMode == GameMode::PLAYING_BUILD)
       return;
 
     uint8_t lineEnd, lineStart;
@@ -59,12 +59,12 @@ void drawScoreStars() {
 
 void drawMapInfos(uint8_t num) {
 
-  if (gameMode == MODE_MAPS_CAMPAIN) {
+  if (gameMode == GameMode::MAPS_CAMPAIN) {
 
     // in campain list show always the stars
     drawScoreStars();
 
-  } else if (gameMode == MODE_MAPS_EDITOR) {
+  } else if (gameMode == GameMode::MAPS_EDITOR) {
 
     // hints to show the mode can be changed
     drawLeftHint(12, 57);
@@ -94,7 +94,7 @@ void drawMapInfos(uint8_t num) {
   }
 
   mF.setCursor(10, 22);
-  if (gameMode == MODE_MAPS_CAMPAIN) {
+  if (gameMode == GameMode::MAPS_CAMPAIN) {
     mF.print(F("LEVEL"));
 
   } else {
@@ -122,7 +122,7 @@ void drawMapInfos(uint8_t num) {
   }
 
   // draw the stars only in the campain mode
-  if (gameMode != MODE_MAPS_CAMPAIN)
+  if (gameMode != GameMode::MAPS_CAMPAIN)
     return;
 
   // draw the global stars
@@ -168,7 +168,7 @@ void drawMapsListEditor() {
   drawCenterMapHighlighter();
 
   // try to draw all of the menu items if they are on the screen or not
-  for (int8_t i = 0; i < EDITOR_MAP_SLOTS; i++) {
+  for (int8_t i = 0; i < MENU_EDITOR_SLOTS; i++) {
 
     // calculate vertical offset
     int16_t yOffset = i * mapHeight + mapHeight - 1 - indexMapsEditorDelayed;
@@ -494,7 +494,7 @@ void drawEnemiesInfos() {
     // iterate horizontal trough the races of enemys
     for (uint8_t r = 0; r < 3; r++) {
 
-      drawEnemy(xPos, yPos, t, r, state, false);
+      drawEnemy(xPos, yPos, t, EnemyRace(r), state, false);
 
       // move a bit right
       xPos += 12;
