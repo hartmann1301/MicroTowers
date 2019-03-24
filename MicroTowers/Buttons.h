@@ -4,7 +4,27 @@
 void getButtons() {
 #ifdef ESP8266
   // this function is called inside arduboy whenever buttonStates() is called
-  arduboy.setExternalButtons(ps2x.getArduboyButtons());
+  uint8_t buttons = 0;
+
+  if (digitalRead(MY_BUTTON_A))
+    buttons |= A_BUTTON;
+
+  if (digitalRead(MY_BUTTON_B))
+    buttons |= B_BUTTON;
+
+  if (digitalRead(MY_BUTTON_UP))
+    buttons |= UP_BUTTON;
+
+  if (digitalRead(MY_BUTTON_DOWN))
+    buttons |= DOWN_BUTTON;
+
+  if (digitalRead(MY_BUTTON_LEFT))
+    buttons |= LEFT_BUTTON;
+
+  if (digitalRead(MY_BUTTON_RIGHT))
+    buttons |= RIGHT_BUTTON;
+
+  arduboy.setExternalButtons(buttons);
 #endif
 }
 

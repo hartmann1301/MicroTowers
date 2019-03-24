@@ -32,7 +32,17 @@
 #define PS2_CMD       D0 // orange 
 #define PS2_SEL       D5 // yellow
 #define PS2_CLK       D8 // blue
-SSD1306Brzo oled(OLED_I2C_ADRESS, D2, D1);
+
+#define I2C_SDA       D2
+#define I2C_SCL       D1
+SSD1306Brzo oled(OLED_I2C_ADRESS, I2C_SDA, I2C_SCL);
+
+#define MY_BUTTON_A     D0
+#define MY_BUTTON_B     D4
+#define MY_BUTTON_UP    D6
+#define MY_BUTTON_DOWN  D7
+#define MY_BUTTON_LEFT  D5
+#define MY_BUTTON_RIGHT D8
 
 #include <PS2X_lib.h>
 PS2X ps2x;
